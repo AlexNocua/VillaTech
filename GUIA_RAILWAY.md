@@ -1,3 +1,5 @@
+ACTUALIZACIÓN CORREOS: consulta GUIA_CORREOS_Y_PEDIDOS.md. Railway Free/Trial/Hobby requiere HTTPS (Resend); SMTP solo en Pro o superior.
+
 # Configuración simplificada
 
 Para esta entrega sigue LEEME_PRIMERO.md: reemplaza la sección 3 por las cuatro variables de RAILWAY_VARIABLES.txt. Producción, dominio, CSRF y rutas se detectan automáticamente. Las secciones de importación, correo, pruebas y copias siguen aplicando.

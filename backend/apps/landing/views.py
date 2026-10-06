@@ -51,6 +51,13 @@ def contact_form_action(request):
         with transaction.atomic():
             contact=Contact.objects.create(client_name=data['name'],telephone=int(phone),email=data['email'],service=data['service'],message=data['message'],file='')
             for file in files: ContactAttachment.objects.create(contact=contact,file=file)
+            from apps.management.models import Entry
+            from .notifications import queue_contact_emails, safely_dispatch
+            entry = Entry.objects.create(kind='quote', status='draft', source='web', contact=contact,
+                title=f"Solicitud web · {data['service']}", description=data['message'],
+                customer=data['name'][:150], customer_email=data['email'], customer_phone=data['phone'], amount=0)
+            queue_contact_emails(contact, entry)
+            transaction.on_commit(lambda: safely_dispatch(contact.pk))
     except ValidationError as error:
         messages.error(request,' '.join(error.messages))
     except Exception:

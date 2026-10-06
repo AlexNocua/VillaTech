@@ -107,7 +107,7 @@ DATABASES = {'default': {'ENGINE':'django.db.backends.sqlite3','NAME':BASE_DIR.p
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER','')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD','')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'noreply@localhost'
-EMAIL_TIMEOUT = 15
+EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
@@ -245,3 +245,10 @@ if IS_RAILWAY:
     if 'healthcheck.railway.app' not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append('healthcheck.railway.app')
     SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
+
+# Customer confirmation + private team notification.
+CONTACT_NOTIFICATION_EMAIL = os.environ.get('CONTACT_NOTIFICATION_EMAIL', EMAIL_HOST_USER)
+PUBLIC_SITE_URL = os.environ.get('PUBLIC_SITE_URL', 'https://' + os.environ['RAILWAY_PUBLIC_DOMAIN'] if os.environ.get('RAILWAY_PUBLIC_DOMAIN') else 'http://localhost:8000')
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'resend' if IS_RAILWAY else 'smtp').lower()
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'apps.landing.email_backend.ResendEmailBackend' if EMAIL_PROVIDER == 'resend' else 'django.core.mail.backends.smtp.EmailBackend')

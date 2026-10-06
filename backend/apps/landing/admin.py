@@ -42,3 +42,16 @@ class VariantInline(admin.TabularInline):
     extra = 0
 ProductAdmin.inlines = [VariantInline]
 admin.site.register(ProductVariant)
+
+from .models import ContactEmail, ContactAttachment
+class ContactAttachmentInline(admin.TabularInline):
+    model = ContactAttachment
+    extra = 0
+ContactAdmin.inlines = [ContactAttachmentInline]
+@admin.register(ContactEmail)
+class ContactEmailAdmin(admin.ModelAdmin):
+    list_display = ('contact','audience','recipient','status','attempts','sent_at')
+    list_filter = ('status','audience')
+    readonly_fields = ('contact','audience','recipient','subject','text','html','reply_to','status','attempts','last_error','sent_at')
+    def has_add_permission(self,request): return False
+    def has_delete_permission(self,request,obj=None): return False

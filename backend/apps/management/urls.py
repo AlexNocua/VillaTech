@@ -3,6 +3,11 @@ from django.contrib.auth.views import LoginView, LogoutView
 from . import views
 app_name='management'
 urlpatterns=[
+ path('solicitudes/archivo/<int:pk>/',views.legacy_contact_file,name='legacy_contact_file'),
+ path('pedidos/',views.entry_list,name='orders'),
+ path('cotizaciones/',views.entry_list,{'section':'quotes'},name='quotes'),
+ path('solicitudes/adjunto/<int:pk>/',views.contact_attachment,name='contact_attachment'),
+ path('solicitudes/<int:pk>/reintentar-correos/',views.retry_notifications,name='retry_notifications'),
  path('desarrollo/',views.development,name='development'),
  path('desarrollo/<int:pk>/',views.development,name='development_edit'),
  path('desarrollo/captura/<int:pk>/',views.screenshot,name='screenshot'),

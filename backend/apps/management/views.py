@@ -2,7 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, Q
+from django.core.paginator import Paginator
 from django.http import FileResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
@@ -42,13 +43,14 @@ def entry_form(request,kind,pk=None):
     form_class={"sale":SaleForm,"order":OrderForm,"quote":QuotationForm,"expense":ExpenseForm}[kind]
     form=form_class(request.POST or None,request.FILES or None,instance=instance)
     items=QuoteFormSet(request.POST or None,request.FILES or None,instance=instance,prefix='items') if kind in ('order','quote') else None
-    if kind=='quote':instance.status='quoted'
+
     if request.method=='POST':
         valid=form.is_valid()
         if items is not None:valid=items.is_valid() and valid
         if valid:
             with transaction.atomic():
                 entry=form.save(commit=False);entry.kind=kind
+                if kind == "quote": entry.status = "quoted"
                 if not pk:entry.created_by=request.user
                 entry.amount=entry.amount or 0;entry.save()
                 if items is not None:
@@ -140,6 +142,9 @@ def quote_detail(request,pk):
 @xframe_options_sameorigin
 def quote_pdf(request,pk):
     order=get_object_or_404(Entry,pk=pk,kind__in=['quote','order','sale'])
+    if order.status == 'draft':
+        from django.http import HttpResponseBadRequest
+        return HttpResponseBadRequest('Completa la cotización antes de generar el PDF.')
     response=FileResponse(order.quotation_pdf.open('rb'),content_type='application/pdf') if order.quotation_pdf else HttpResponse(build_quote(order),content_type='application/pdf')
     response['Content-Disposition']=f'inline; filename="VillaTech-cotizacion-{order.pk}.pdf"'
     response['Cache-Control']='private, no-store';return response
@@ -151,7 +156,7 @@ def transition(request,pk,target):
     allowed={('quote','order'),('order','sale')}
     with transaction.atomic():
         entry=get_object_or_404(Entry.objects.select_for_update(),pk=pk)
-        if (entry.kind,target) not in allowed or entry.status=='cancelled':
+        if (entry.kind,target) not in allowed or entry.status in ('cancelled','draft'):
             from django.http import HttpResponseBadRequest
             return HttpResponseBadRequest('Este registro ya cambió de estado o la transición no es válida.')
         entry.kind=target
@@ -206,4 +211,59 @@ def screenshot(request,pk):
     response=FileResponse(stream,content_type=mime)
     response['Cache-Control']='private, no-store'
     response['X-Content-Type-Options']='nosniff'
+    return response
+
+
+@staff_only
+def entry_list(request, section='orders'):
+    entries = Entry.objects.select_related('contact')
+    if section == 'quotes':
+        entries = entries.filter(kind='quote')
+        statuses = [choice for choice in Entry.STATUS if choice[0] in ('draft','quoted','cancelled')]
+    else:
+        # Incoming web drafts remain visible until priced and confirmed.
+        entries = entries.filter(Q(kind='order') | Q(kind='quote',source='web'))
+        statuses = [choice for choice in Entry.STATUS if choice[0] != 'sold']
+    status = request.GET.get('status','')
+    source = request.GET.get('source','')
+    query = request.GET.get('q','').strip()[:150]
+    if status in dict(statuses): entries = entries.filter(status=status)
+    if source in ('web','manual'): entries = entries.filter(source=source)
+    if query:
+        entries = entries.filter(Q(title__icontains=query) | Q(customer__icontains=query) | Q(customer_email__icontains=query))
+    page = Paginator(entries,25).get_page(request.GET.get('page'))
+    params = request.GET.copy(); params.pop('page',None)
+    return render(request,'management/entries.html',{'page':page,'section':section,'statuses':statuses,
+        'status':status,'source':source,'query':query,'filters_query':params.urlencode()})
+
+@staff_only
+def contact_attachment(request,pk):
+    from apps.landing.models import ContactAttachment
+    attachment = get_object_or_404(ContactAttachment,pk=pk)
+    response = FileResponse(attachment.file.open('rb'),as_attachment=True,filename=Path(attachment.file.name).name,
+        content_type='application/octet-stream')
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+@staff_only
+@require_POST
+def retry_notifications(request,pk):
+    entry = get_object_or_404(Entry,pk=pk,source='web',contact__isnull=False)
+    from apps.landing.notifications import safely_dispatch
+    safely_dispatch(entry.contact_id)
+    messages.info(request,'Reintento realizado. Revisa el estado de cada correo.')
+    return redirect('management:quote_detail',pk=pk)
+
+
+@staff_only
+def legacy_contact_file(request,pk):
+    from apps.landing.models import Contact
+    from django.http import Http404
+    contact = get_object_or_404(Contact,pk=pk)
+    if not contact.file: raise Http404
+    response = FileResponse(contact.file.open('rb'),as_attachment=True,
+        filename=Path(contact.file.name).name,content_type='application/octet-stream')
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
     return response

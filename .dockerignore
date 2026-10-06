@@ -11,3 +11,5 @@ staticfiles
 backups
 .git
 **/*.zip
+
+env

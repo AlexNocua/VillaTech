@@ -1,0 +1,15 @@
+{% if admin %}Nueva solicitud desde la página web. Borrador #{{ entry.pk }}.
+Cliente: {{ contact.client_name }}
+Correo: {{ contact.email }}
+Teléfono: {{ entry.customer_phone }}
+Servicio: {{ contact.service }}
+Mensaje: {{ contact.message }}
+Revisa la solicitud y sus archivos en gestión: {{ management_url }}
+{% else %}Hola {{ contact.client_name }},
+Recibimos tu solicitud #{{ contact.pk }} en VillaTech.
+Servicio: {{ contact.service }}
+Mensaje: {{ contact.message }}
+Revisaremos tu proyecto y te contactaremos para preparar la cotización.
+Esta confirmación no incluye un precio ni confirma un pedido de fabricación.
+Gracias por confiar en VillaTech: donde tus ideas toman forma.
+{% endif %}

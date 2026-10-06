@@ -33,13 +33,13 @@ class SaleForm(EntryForm):
 
 class OrderForm(EntryForm):
     class Meta(EntryForm.Meta):
-        fields=['title','description','customer','product_category','reference_product','amount','status','filament_g','print_hours','image','logo_theme']
+        fields=['title','description','customer','product_category','reference_product','customer_email','customer_phone','amount','status','filament_g','print_hours','image','logo_theme']
         labels={'title':'Producto / proyecto solicitado','amount':'Precio total (COP, si no detallas productos)'}
         widgets={'description':forms.Textarea(attrs={'rows':3})}
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields['amount'].required=False
-        if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] not in ['sold','quoted']]
+        if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] not in ['sold','quoted','draft']]
     def clean_amount(self):
         value=self.cleaned_data.get('amount');product=self.cleaned_data.get('reference_product')
         return product.price if value is None and product else value or 0

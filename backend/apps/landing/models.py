@@ -84,6 +84,21 @@ class ProductVariant(models.Model):
     def __str__(self):
         return f'{self.product} · {self.name}'
 
+class ContactEmail(models.Model):
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='notifications')
+    audience = models.CharField(max_length=10, choices=[('customer','Cliente'),('admin','VillaTech')])
+    recipient = models.EmailField(blank=True)
+    subject = models.CharField(max_length=255)
+    text = models.TextField()
+    html = models.TextField()
+    reply_to = models.EmailField(blank=True)
+    status = models.CharField(max_length=10, default='pending', choices=[('pending','Pendiente'),('sent','Aceptado por proveedor'),('failed','Falló')])
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.CharField(max_length=160, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['contact','audience'], name='unique_contact_email_audience')]
+
 class ContactAttachment(models.Model):
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to=private_path)

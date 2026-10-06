@@ -6,7 +6,7 @@ from apps.landing.validators import private_path, validate_image
 class Entry(models.Model):
     KIND = [('quote','Cotización'),('sale','Venta'),('order','Pedido'),('expense','Gasto')]
     CATEGORY = [('filament','Compra de filamento'),('monthly','Pago mensual'),('maintenance','Mantenimiento'),('energy','Energía'),('software','Software y licencias'),('supplies','Insumos'),('services','Servicios'),('other','Otro')]
-    STATUS = [('quoted','Cotizado'),('sold','Vendido'),('pending','Pendiente'),('printing','En impresión'),('ready','Listo'),('delivered','Entregado'),('cancelled','Cancelado')]
+    STATUS = [('draft','Borrador'),('quoted','Cotizado'),('sold','Vendido'),('pending','Pendiente'),('printing','En impresión'),('ready','Listo'),('delivered','Entregado'),('cancelled','Cancelado')]
     kind = models.CharField('Tipo', max_length=10, choices=KIND)
     title = models.CharField('Descripción', max_length=150)
     description = models.TextField('Descripción del producto / proyecto', blank=True)
@@ -25,7 +25,11 @@ class Entry(models.Model):
     quotation_pdf = models.FileField(upload_to=private_path, blank=True, editable=False)
     logo_theme = models.CharField('Logo del PDF', max_length=5, choices=[('light','Blanco'),('dark','Negro')], default='light')
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True)
+    source = models.CharField('Origen', max_length=10, choices=[('manual','Gestión'),('web','Página web')], default='manual')
+    contact = models.OneToOneField('landing.Contact', on_delete=models.PROTECT, null=True, blank=True, related_name='entry')
+    customer_email = models.EmailField('Correo del cliente', blank=True)
+    customer_phone = models.CharField('Teléfono del cliente', max_length=25, blank=True)
     class Meta:
         ordering = ['-created_at']
     def save(self,*args,**kwargs):

@@ -18,3 +18,5 @@ h1,h2{font-family:Georgia,'Times New Roman',serif;font-weight:400}.brand{display
 #cost-feedback{white-space:pre-line;line-height:1.8}
 [hidden]{display:none!important}
 @media(max-width:800px){.project-grid{grid-template-columns:1fr}.quote-preview{height:480px}.action-row>*{max-width:100%}}
+
+.request-filters{display:flex;flex-wrap:wrap;gap:16px;align-items:end}.request-filters label{flex:1 1 160px}.request-filters input,.request-filters select{width:100%}.table-scroll td small{display:block}.request-filters button{min-height:42px}@media(max-width:600px){.request-filters label{flex-basis:100%}}

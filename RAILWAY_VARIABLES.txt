@@ -1,3 +1,5 @@
+ACTUALIZACIÓN CORREOS: consulta GUIA_CORREOS_Y_PEDIDOS.md. Railway Free/Trial/Hobby requiere HTTPS (Resend); SMTP solo en Pro o superior.
+
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 REDIS_URL=${{Redis.REDIS_URL}}
 DJ_KEY_SECRET=PEGA_AQUI_TU_CLAVE_GENERADA
