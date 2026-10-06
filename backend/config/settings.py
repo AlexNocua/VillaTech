@@ -94,12 +94,15 @@ EMAIL_PORT=587
 EMAIL_USE_TLS=True
 
 
-IS_PRODUCTION = os.environ.get('IS_PRODUCTION', '').lower() in ('s','true','1')
+IS_RAILWAY = bool(os.environ.get('RAILWAY_ENVIRONMENT_ID')) or os.environ.get('DEPLOY_TARGET') == 'railway'
+IS_PRODUCTION = IS_RAILWAY or os.environ.get('IS_PRODUCTION', '').lower() in ('s','true','1')
 SECRET_KEY = os.environ.get('DJ_KEY_SECRET') or ('development-only-change-before-deploy' if not IS_PRODUCTION else '')
 if not SECRET_KEY:
     raise RuntimeError('Configura DJ_KEY_SECRET para producción.')
 DEBUG = not IS_PRODUCTION
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJ_ALLOWED_HOSTS','localhost,127.0.0.1,testserver').split(',') if h.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJ_ALLOWED_HOSTS', '' if IS_PRODUCTION else 'localhost,127.0.0.1,testserver').split(',') if h.strip()]
+if IS_RAILWAY and os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
+    ALLOWED_HOSTS.append(os.environ['RAILWAY_PUBLIC_DOMAIN'])
 DATABASES = {'default': {'ENGINE':'django.db.backends.sqlite3','NAME':BASE_DIR.parent / 'db.sqlite3'}}
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER','')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD','')
@@ -174,10 +177,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 if os.environ.get('REDIS_URL'):
     CACHES = {'default': {'BACKEND':'django.core.cache.backends.redis.RedisCache','LOCATION':os.environ['REDIS_URL']}}
 CSRF_TRUSTED_ORIGINS = [v.strip() for v in os.environ.get('CSRF_TRUSTED_ORIGINS','').split(',') if v.strip()]
+if IS_RAILWAY and os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
+    CSRF_TRUSTED_ORIGINS.append('https://' + os.environ['RAILWAY_PUBLIC_DOMAIN'])
 
 # Production deployment overrides. Local development retains SQLite.
-DB_ENGINE = os.environ.get('DB_ENGINE', 'sqlite')
-if DB_ENGINE == 'postgresql':
+DB_ENGINE = os.environ.get('DB_ENGINE', 'postgresql' if IS_RAILWAY or os.environ.get('DATABASE_URL') else 'sqlite')
+if DB_ENGINE == 'postgresql' and os.environ.get('DATABASE_URL'):
+    from urllib.parse import urlparse, unquote, parse_qs
+    db_url = urlparse(os.environ['DATABASE_URL'])
+    if db_url.scheme not in ('postgres', 'postgresql') or not db_url.hostname:
+        raise RuntimeError('DATABASE_URL debe ser una URL PostgreSQL válida.')
+    DATABASES = {'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': unquote(db_url.path.lstrip('/')),
+        'USER': unquote(db_url.username or ''),
+        'PASSWORD': unquote(db_url.password or ''),
+        'HOST': db_url.hostname, 'PORT': db_url.port or 5432,
+        'CONN_MAX_AGE': 60, 'CONN_HEALTH_CHECKS': True,
+        'OPTIONS': {k: v[-1] for k, v in parse_qs(db_url.query).items() if k in ('sslmode', 'connect_timeout')},
+    }}
+elif DB_ENGINE == 'postgresql':
     DATABASES = {'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('POSTGRES_DB', 'villatech'),
@@ -191,18 +210,18 @@ elif DB_ENGINE != 'sqlite':
     raise RuntimeError('DB_ENGINE debe ser sqlite o postgresql.')
 else:
     DATABASES['default']['NAME'] = os.environ.get('SQLITE_PATH', str(BASE_DIR.parent / 'db.sqlite3'))
-MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', str(MEDIA_ROOT)))
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', '/data/media' if IS_RAILWAY else str(MEDIA_ROOT)))
 STATIC_ROOT = Path(os.environ.get('STATIC_ROOT', str(STATIC_ROOT)))
 STATIC_URL = '/static/'
 if IS_PRODUCTION:
     if len(SECRET_KEY) < 50 or SECRET_KEY == 'development-only-change-before-deploy':
         raise RuntimeError('Usa una DJ_KEY_SECRET aleatoria de al menos 50 caracteres.')
-    if not os.environ.get('DJ_ALLOWED_HOSTS') or '*' in ALLOWED_HOSTS:
+    if not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS:
         raise RuntimeError('Configura DJ_ALLOWED_HOSTS con dominios explícitos.')
     if DB_ENGINE != 'postgresql' or not os.environ.get('REDIS_URL'):
         raise RuntimeError('Producción requiere PostgreSQL y Redis.')
 # Enable only behind the supplied trusted Nginx proxy; Gunicorn is not published.
-TRUST_PROXY_HEADERS = os.environ.get('TRUST_PROXY_HEADERS', '').lower() in ('1','true')
+TRUST_PROXY_HEADERS = os.environ.get('TRUST_PROXY_HEADERS', 'true' if IS_RAILWAY else '').lower() in ('1','true')
 if TRUST_PROXY_HEADERS:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '3600' if IS_PRODUCTION else '0'))
@@ -216,7 +235,7 @@ LOGGING = {'version': 1, 'disable_existing_loggers': False,
     'root': {'handlers': ['console'], 'level': 'INFO'}}
 
 # Railway serves TLS at its edge; WhiteNoise serves only collected static assets.
-if os.environ.get('RAILWAY_ENVIRONMENT_ID') or os.environ.get('DEPLOY_TARGET') == 'railway':
+if IS_RAILWAY:
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
     STORAGES = {
         'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},

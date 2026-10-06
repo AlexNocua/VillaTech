@@ -1,5 +1,4 @@
-Railway: 23 pruebas funcionales + 2 pruebas healthcheck aprobadas.
-collectstatic: 194 archivos, 178 procesados por WhiteNoise.
-check --deploy: solo avisos HSTS W005/W021 documentados.
-Sintaxis de start-railway.sh correcta.
-Sin despliegue real: Railway, volumen, Postgres, Redis, HTTPS y correo pendientes de verificación en cuenta destino.
+25 pruebas funcionales/healthcheck aprobadas.
+Configuración automática validada: modo producción, dominio y CSRF Railway, DATABASE_URL con contraseña escapada, ruta persistente y cabecera HTTPS.
+check --deploy: únicamente W005/W021 HSTS deliberados.
+Sin cambios en modelos. Sin despliegue real en Railway; servicios, volumen, correo y datos deben comprobarse en la cuenta destino.

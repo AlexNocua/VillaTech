@@ -1,3 +1,7 @@
+# Configuración simplificada
+
+Para esta entrega sigue LEEME_PRIMERO.md: reemplaza la sección 3 por las cuatro variables de RAILWAY_VARIABLES.txt. Producción, dominio, CSRF y rutas se detectan automáticamente. Las secciones de importación, correo, pruebas y copias siguen aplicando.
+
 # VillaTech en Railway
 
 Esta versión sustituye la preparación anterior para VPS. Mantiene tu landing y gestión; adapta el despliegue a Railway. No se ha publicado en tu cuenta. Usa esta guía y este paquete juntos.
