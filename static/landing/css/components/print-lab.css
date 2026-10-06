@@ -1,0 +1,561 @@
+.print-lab {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-background-secondary);
+}
+
+.print-console {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.68fr);
+    min-height: 620px;
+    overflow: hidden;
+    border: 1px solid #1E3445;
+    border-radius: var(--radius-xl);
+    background: var(--brand-dark);
+    color: var(--brand-white);
+    box-shadow: 0 34px 90px rgba(3, 11, 18, 0.22);
+}
+
+.print-console.is-complete {
+    border-color: rgba(143, 212, 0, 0.46);
+}
+
+.print-stage {
+    position: relative;
+    display: grid;
+    min-height: 620px;
+    place-items: center;
+    overflow: hidden;
+    border-right: 1px solid #1E3445;
+    background:
+        linear-gradient(rgba(49, 80, 102, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(49, 80, 102, 0.12) 1px, transparent 1px),
+        radial-gradient(circle at 50% 46%, #10283D 0, #07182A 52%, #030B12 100%);
+    background-size: 30px 30px, 30px 30px, auto;
+}
+
+.print-stage::before {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    width: min(64%, 440px);
+    height: 58%;
+    border-radius: 50%;
+    background: rgba(143, 212, 0, 0.07);
+    content: "";
+    filter: blur(45px);
+    transform: translateX(-50%);
+}
+
+.printer-frame {
+    position: absolute;
+    inset: 52px 8% 46px;
+    max-width: 660px;
+    margin-inline: auto;
+}
+
+.printer-frame__rail,
+.printer-frame__top {
+    position: absolute;
+    z-index: 1;
+    border: 1px solid #315066;
+    background: linear-gradient(90deg, #0B1B29, #1E3445, #0B1B29);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.32);
+}
+
+.printer-frame__rail {
+    top: 23px;
+    bottom: 56px;
+    width: 15px;
+    border-radius: 5px;
+}
+
+.printer-frame__rail::after {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 50%;
+    width: 2px;
+    background: repeating-linear-gradient(to bottom, #315066 0 6px, transparent 6px 12px);
+    content: "";
+    transform: translateX(-50%);
+}
+
+.printer-frame__rail--left { left: 0; }
+.printer-frame__rail--right { right: 0; }
+
+.printer-frame__top {
+    top: 16px;
+    right: 0;
+    left: 0;
+    height: 18px;
+    border-radius: 6px;
+}
+
+.filament-route {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 72%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.filament-route path {
+    fill: none;
+    stroke: var(--brand-lime);
+    stroke-linecap: round;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 5px rgba(143, 212, 0, 0.5));
+    vector-effect: non-scaling-stroke;
+}
+
+.filament-spool {
+    position: absolute;
+    z-index: 3;
+    top: -4px;
+    left: 17px;
+    display: grid;
+    width: 72px;
+    height: 72px;
+    place-items: center;
+    border: 8px solid #1E3445;
+    border-radius: 50%;
+    background: #07182A;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34), 0 0 0 1px #315066;
+}
+
+.filament-spool::before,
+.filament-spool::after {
+    position: absolute;
+    border: 2px solid rgba(143, 212, 0, 0.62);
+    border-radius: 50%;
+    content: "";
+}
+
+.filament-spool::before { inset: 8px; }
+.filament-spool::after { inset: 16px; }
+
+.filament-spool i {
+    position: relative;
+    z-index: 1;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--brand-lime);
+}
+
+.filament-spool span {
+    position: absolute;
+    bottom: -25px;
+    color: #6F7D85;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+}
+
+.printer-gantry {
+    position: absolute;
+    z-index: 4;
+    top: 122px;
+    right: 9%;
+    left: 9%;
+    height: 56px;
+}
+
+.printer-gantry__beam {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 12px;
+    border: 1px solid #315066;
+    border-radius: 4px;
+    background: linear-gradient(#263E50, #10283D);
+    box-shadow: 0 9px 20px rgba(0, 0, 0, 0.34);
+}
+
+.printer-gantry__beam::after {
+    position: absolute;
+    top: 4px;
+    right: 10px;
+    left: 10px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, #6F7D85 0 4px, transparent 4px 9px);
+    content: "";
+}
+
+.printer-toolhead {
+    position: absolute;
+    z-index: 5;
+    top: -9px;
+    left: 50%;
+    width: 58px;
+    height: 47px;
+    margin-left: -29px;
+    border: 1px solid #315066;
+    border-radius: 9px 9px 7px 7px;
+    background: linear-gradient(145deg, #263E50, #0B1B29);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.printer-toolhead::before {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    left: 9px;
+    height: 15px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(90deg, #10283D 0 3px, #315066 3px 5px);
+    content: "";
+}
+
+.printer-toolhead i {
+    position: absolute;
+    top: 46px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-top: 18px solid #CCD3CF;
+    border-right: 7px solid transparent;
+    border-left: 7px solid transparent;
+    filter: drop-shadow(0 6px 5px rgba(0, 0, 0, 0.45));
+    transform: translateX(-50%);
+}
+
+.printer-toolhead__light {
+    position: absolute;
+    z-index: 2;
+    right: 6px;
+    bottom: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-lime);
+    box-shadow: 0 0 10px rgba(143, 212, 0, 0.85);
+}
+
+.printed-part {
+    position: absolute;
+    z-index: 3;
+    bottom: 99px;
+    left: 50%;
+    display: flex;
+    width: min(38%, 220px);
+    height: 174px;
+    transform: translateX(-50%);
+    flex-direction: column-reverse;
+    gap: 3px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.printed-part span {
+    display: block;
+    width: 100%;
+    height: 8px;
+    flex: 0 0 8px;
+    border: 1px solid rgba(215, 255, 121, 0.48);
+    border-radius: 3px;
+    background: linear-gradient(90deg, #0B6E34, #8FD400 52%, #159447);
+    box-shadow: 0 0 9px rgba(143, 212, 0, 0.18);
+    transform-origin: center;
+}
+
+.printed-part span:nth-child(1) { width: 100%; }
+.printed-part span:nth-child(2) { width: 98%; }
+.printed-part span:nth-child(3) { width: 95%; }
+.printed-part span:nth-child(4) { width: 91%; }
+.printed-part span:nth-child(5) { width: 86%; }
+.printed-part span:nth-child(6) { width: 80%; }
+.printed-part span:nth-child(7) { width: 74%; }
+.printed-part span:nth-child(8) { width: 69%; }
+.printed-part span:nth-child(9) { width: 65%; }
+.printed-part span:nth-child(10) { width: 62%; }
+.printed-part span:nth-child(11) { width: 60%; }
+.printed-part span:nth-child(12) { width: 58%; }
+
+.build-plate {
+    position: absolute;
+    z-index: 4;
+    right: 7%;
+    bottom: 69px;
+    left: 7%;
+    height: 31px;
+    border: 1px solid #315066;
+    border-radius: 7px;
+    background: linear-gradient(#263E50, #0B1B29);
+    box-shadow: 0 18px 30px rgba(0, 0, 0, 0.45);
+}
+
+.build-plate span {
+    position: absolute;
+    top: -7px;
+    right: 8px;
+    left: 8px;
+    height: 8px;
+    border: 1px solid #315066;
+    border-radius: 4px;
+    background: #10283D;
+}
+
+.build-plate i {
+    position: absolute;
+    right: 20%;
+    bottom: -18px;
+    left: 20%;
+    height: 18px;
+    border-right: 12px solid transparent;
+    border-left: 12px solid transparent;
+    background: #07182A;
+}
+
+.print-monitor {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    padding: clamp(30px, 4vw, 46px);
+    flex-direction: column;
+    background:
+        radial-gradient(circle at 100% 0, rgba(143, 212, 0, 0.1), transparent 34%),
+        #06121D;
+}
+
+.print-monitor__topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 26px;
+    border-bottom: 1px solid #1E3445;
+}
+
+.print-monitor__topline > span {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: #CCD3CF;
+    font-family: var(--font-mono);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.print-monitor__topline i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-lime);
+    box-shadow: 0 0 0 5px rgba(143, 212, 0, 0.1);
+}
+
+.print-monitor__topline small {
+    color: #51616B;
+    font-family: var(--font-mono);
+    font-size: 0.57rem;
+}
+
+.print-progress {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    margin-top: 47px;
+}
+
+.print-progress span {
+    max-width: 110px;
+    color: #89938E;
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.print-progress strong {
+    color: var(--brand-white);
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 500;
+    letter-spacing: -0.06em;
+    line-height: 1;
+}
+
+.print-progress__track {
+    height: 5px;
+    margin-top: 15px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #1E3445;
+}
+
+.print-progress__track i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--brand-green), var(--brand-lime));
+    box-shadow: 0 0 12px rgba(143, 212, 0, 0.45);
+}
+
+.print-monitor__data {
+    display: grid;
+    gap: 0;
+    margin: 40px 0 0;
+}
+
+.print-monitor__data > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #142A3A;
+}
+
+.print-monitor__data dt {
+    color: #6F7D85;
+    font-size: 0.69rem;
+}
+
+.print-monitor__data dd {
+    margin: 0;
+    color: #CCD3CF;
+    font-family: var(--font-mono);
+    font-size: 0.69rem;
+}
+
+.print-monitor__data div:last-child dd {
+    color: var(--brand-lime);
+}
+
+.print-monitor__note {
+    margin: 25px 0 0;
+    color: #6F7D85;
+    font-size: 0.66rem;
+    line-height: 1.6;
+}
+
+.print-replay {
+    display: inline-flex;
+    min-height: 44px;
+    gap: 9px;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+    padding: 0 15px;
+    border: 1px solid #315066;
+    border-radius: 10px;
+    background: #0B1B29;
+    color: #CCD3CF;
+    cursor: pointer;
+    font-size: 0.73rem;
+    font-weight: 700;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.print-replay:hover {
+    border-color: var(--brand-lime);
+    background: #10283D;
+    color: var(--brand-lime);
+    transform: translateY(-2px);
+}
+
+.print-replay svg {
+    width: 16px;
+    height: 16px;
+}
+
+.print-replay:disabled {
+    display: none;
+}
+
+@media (max-width: 980px) {
+    .print-console {
+        grid-template-columns: 1fr;
+    }
+
+    .print-stage {
+        border-right: 0;
+        border-bottom: 1px solid #1E3445;
+    }
+
+    .print-monitor {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 40px;
+    }
+
+    .print-monitor__topline,
+    .print-monitor__note,
+    .print-replay {
+        grid-column: 1 / -1;
+    }
+
+    .print-monitor__data {
+        margin-top: 31px;
+    }
+
+    .print-replay {
+        width: 100%;
+        margin-top: 25px;
+    }
+}
+
+@media (max-width: 640px) {
+    .print-console {
+        width: calc(100% + 12px);
+        margin-left: -6px;
+        border-radius: 23px;
+    }
+
+    .print-stage {
+        min-height: 470px;
+    }
+
+    .printer-frame {
+        inset: 36px 5% 24px;
+    }
+
+    .filament-spool {
+        width: 58px;
+        height: 58px;
+        border-width: 7px;
+    }
+
+    .printer-gantry {
+        top: 102px;
+    }
+
+    .printed-part {
+        bottom: 86px;
+        width: 42%;
+        height: 142px;
+    }
+
+    .printed-part span {
+        height: 6px;
+        flex-basis: 6px;
+    }
+
+    .build-plate {
+        bottom: 57px;
+    }
+
+    .print-monitor {
+        display: flex;
+        padding: 28px 23px;
+    }
+
+    .print-progress {
+        margin-top: 35px;
+    }
+}
+
+.additive-printer{display:block;width:min(100%,650px);height:auto;overflow:visible;filter:drop-shadow(0 18px 16px rgba(0,0,0,.35))}
+.print-stage > .additive-printer{padding:20px;max-height:580px}
+.additive-printer [data-print-layers] path{stroke:#D7FF79;stroke-width:.7}
+.additive-printer [data-print-head]{filter:drop-shadow(0 4px 4px #000)}
+
+/* Explicit dimensions prevent SVG min-content collapse inside the grid. */
+.print-stage{min-width:0;isolation:isolate}
+.print-stage::before{z-index:-1}
+.print-stage > svg.additive-printer{position:relative;z-index:1;justify-self:center;width:100%;max-width:650px;height:auto;aspect-ratio:4/3;min-height:240px;visibility:visible;opacity:1}

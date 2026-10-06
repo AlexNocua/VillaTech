@@ -1,0 +1,36 @@
+{% load static %}
+<header class="site-header" data-site-header>
+    <div class="container navbar">
+        {% include "landing/components/brand.html" %}
+
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation" data-nav-toggle>
+            <span class="sr-only">Abrir menú</span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <nav class="nav-menu" id="primary-navigation" aria-label="Navegación principal" data-nav-menu>
+            <a href="#servicios" data-nav-link>Servicios</a>
+            <a href="#proceso" data-nav-link>Proceso</a>
+            <a href="#proyectos" data-nav-link>Proyectos</a>
+            <a href="#catalogo" data-nav-link>Catálogo</a>
+            <a href="#preguntas" data-nav-link>Preguntas</a>
+
+            <button class="theme-toggle" type="button" data-theme-toggle aria-label="Activar tema oscuro" title="Cambiar tema">
+                <svg class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">
+                    <use href="{% static 'landing/icons/sprite.svg' %}#icon-sun"></use>
+                </svg>
+                <svg class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">
+                    <use href="{% static 'landing/icons/sprite.svg' %}#icon-moon"></use>
+                </svg>
+            </button>
+
+            <a class="button button--primary navbar__cta" href="#contacto">
+                Cotizar proyecto
+                <svg class="button__icon" aria-hidden="true">
+                    <use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-up-right"></use>
+                </svg>
+            </a>
+        </nav>
+    </div>
+</header>

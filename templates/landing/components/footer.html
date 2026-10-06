@@ -1,0 +1,35 @@
+{% load static %}
+<footer class="site-footer">
+    <div class="container footer-grid">
+        <div class="footer-brand">
+            {% include "landing/components/brand.html" %}
+            <p>Diseñamos soluciones físicas y digitales para convertir ideas en resultados funcionales.</p>
+        </div>
+
+        <div class="footer-links">
+            <div>
+                <span class="footer-links__title">Explorar</span>
+                <a href="#servicios">Servicios</a>
+                <a href="#proceso">Proceso</a>
+                <a href="#proyectos">Proyectos</a>
+                <a href="#catalogo">Catálogo 3D</a>
+            </div>
+            <div>
+                <span class="footer-links__title">Contacto</span>
+                {% if site_email %}<a href="mailto:{{ site_email }}">{{ site_email }}</a>{% endif %}
+                {% if whatsapp_url %}<a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>{% endif %}
+                <span>Ubaté, Cundinamarca</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container footer-bottom">
+        <p>© {% now "Y" %} {{ site_name|default:'VillaTech' }}. Todos los derechos reservados.</p>
+        <div class="footer-legal" aria-label="Información legal">
+            <button type="button" data-legal-open="privacy">Privacidad</button>
+            <button type="button" data-legal-open="cookies">Cookies</button>
+            <button type="button" data-legal-open="terms">Términos</button>
+            <button type="button" data-cookie-settings>Preferencias</button>
+        </div>
+    </div>
+</footer>

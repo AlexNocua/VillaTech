@@ -1,0 +1,90 @@
+<aside class="consent-banner" data-cookie-banner hidden aria-labelledby="consent-title">
+    <div class="consent-banner__mark" aria-hidden="true">VT</div>
+    <div class="consent-banner__copy">
+        <strong id="consent-title">Tu privacidad, sin letra pequeña.</strong>
+        <p>Usamos almacenamiento esencial para recordar el tema y tus preferencias. La analítica y el marketing permanecen desactivados hasta que los autorices.</p>
+        <button type="button" data-legal-open="cookies">Ver política de cookies</button>
+    </div>
+    <div class="consent-banner__actions">
+        <button class="button button--secondary" type="button" data-cookie-action="necessary">Solo necesarias</button>
+        <button class="button button--secondary" type="button" data-cookie-action="configure">Configurar</button>
+        <button class="button button--primary" type="button" data-cookie-action="all">Aceptar todas</button>
+    </div>
+</aside>
+
+<dialog class="legal-dialog consent-dialog" data-consent-dialog aria-labelledby="consent-dialog-title">
+    <div class="legal-dialog__header">
+        <div><span>PRIVACIDAD · 01</span><h2 id="consent-dialog-title">Preferencias de almacenamiento</h2></div>
+        <button class="legal-dialog__close" type="button" data-dialog-close aria-label="Cerrar">×</button>
+    </div>
+    <form class="consent-options" data-consent-form>
+        <label>
+            <span><strong>Necesarias</strong><small>Tema visual, preferencia de consentimiento y funciones básicas.</small></span>
+            <input type="checkbox" checked disabled>
+        </label>
+        <label>
+            <span><strong>Analítica</strong><small>Preparado para medición anónima; no se carga ninguna herramienta en esta entrega.</small></span>
+            <input type="checkbox" name="analytics" data-consent-analytics>
+        </label>
+        <label>
+            <span><strong>Marketing</strong><small>Preparado para campañas futuras; no se carga ninguna herramienta en esta entrega.</small></span>
+            <input type="checkbox" name="marketing" data-consent-marketing>
+        </label>
+        <div class="legal-dialog__actions">
+            <button class="button button--secondary" type="button" data-cookie-action="necessary">Rechazar opcionales</button>
+            <button class="button button--primary" type="submit">Guardar preferencias</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog class="legal-dialog" data-legal-dialog="privacy" aria-labelledby="privacy-title">
+    <div class="legal-dialog__header">
+        <div><span>LEGAL · PRIVACIDAD</span><h2 id="privacy-title">Aviso de privacidad</h2></div>
+        <button class="legal-dialog__close" type="button" data-dialog-close aria-label="Cerrar">×</button>
+    </div>
+    <div class="legal-dialog__content">
+        <p><strong>Responsable:</strong> {{ site_name|default:'VillaTech' }}. Canal de contacto: {% if site_email %}<a href="mailto:{{ site_email }}">{{ site_email }}</a>{% else %}correo de privacidad pendiente de configurar{% endif %}.</p>
+        <h3>Datos y finalidad</h3>
+        <p>El formulario solicita nombre, teléfono, correo, servicio de interés y mensaje para responder consultas, preparar cotizaciones y dar seguimiento a la solicitud. No pedimos datos sensibles.</p>
+        <h3>Tratamiento y conservación</h3>
+        <p>La información debe conservarse únicamente durante el tiempo necesario para atender la solicitud y cumplir obligaciones aplicables. No se venderá ni se usará para marketing sin una autorización separada.</p>
+        <h3>Tus decisiones</h3>
+        <p>Puedes solicitar acceso, actualización, rectificación o eliminación, y retirar una autorización cuando corresponda, mediante el canal de contacto indicado. Antes de publicar, completa la identidad jurídica, dirección, plazos y procedimiento interno del responsable.</p>
+    </div>
+    <div class="legal-dialog__actions"><button class="button button--primary" type="button" data-dialog-close>Entendido</button></div>
+</dialog>
+
+<dialog class="legal-dialog" data-legal-dialog="cookies" aria-labelledby="cookies-title">
+    <div class="legal-dialog__header">
+        <div><span>LEGAL · COOKIES</span><h2 id="cookies-title">Política de cookies y almacenamiento</h2></div>
+        <button class="legal-dialog__close" type="button" data-dialog-close aria-label="Cerrar">×</button>
+    </div>
+    <div class="legal-dialog__content">
+        <p>Esta versión usa <code>localStorage</code> para recordar el tema claro u oscuro y la elección de privacidad. Son funciones esenciales y no crean perfiles.</p>
+        <h3>Categorías opcionales</h3>
+        <p>Analítica y marketing están previstos en el panel de preferencias, pero no hay proveedores de esas categorías incluidos. Si los agregas, cárgalos solo después del evento <code>villatech:consentchange</code> y documenta proveedor, finalidad, duración y transferencias.</p>
+        <h3>Cambiar de opinión</h3>
+        <p>Puedes abrir “Preferencias” en el pie de página para modificar tu elección. Borrar los datos del sitio en el navegador también reinicia la preferencia.</p>
+    </div>
+    <div class="legal-dialog__actions">
+        <button class="button button--secondary" type="button" data-cookie-settings>Gestionar preferencias</button>
+        <button class="button button--primary" type="button" data-dialog-close>Cerrar</button>
+    </div>
+</dialog>
+
+<dialog class="legal-dialog" data-legal-dialog="terms" aria-labelledby="terms-title">
+    <div class="legal-dialog__header">
+        <div><span>LEGAL · USO</span><h2 id="terms-title">Términos, catálogo y propiedad intelectual</h2></div>
+        <button class="legal-dialog__close" type="button" data-dialog-close aria-label="Cerrar">×</button>
+    </div>
+    <div class="legal-dialog__content">
+        <p>El catálogo es informativo: no constituye una oferta automática. Precio, disponibilidad, material, tolerancias, color, tiempo y acabado se confirman en una cotización.</p>
+        <h3>Contenido y marca</h3>
+        <p>La marca VillaTech, el logotipo, los textos y los recursos originales del sitio no pueden reutilizarse como propios sin autorización. Los derechos sobre cada diseño encargado deben quedar definidos en la cotización o contrato correspondiente.</p>
+        <h3>Referencias del cliente</h3>
+        <p>Quien envía modelos, imágenes, personajes, marcas o archivos declara que puede usarlos y autorizar su fabricación. VillaTech puede rechazar trabajos que infrinjan derechos de terceros, seguridad o normativa aplicable.</p>
+        <h3>Uso técnico</h3>
+        <p>Las piezas impresas no deben asumirse aptas para contacto alimentario, uso médico, carga estructural o seguridad crítica sin validaciones y certificaciones específicas.</p>
+    </div>
+    <div class="legal-dialog__actions"><button class="button button--primary" type="button" data-dialog-close>Entendido</button></div>
+</dialog>

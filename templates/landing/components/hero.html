@@ -1,0 +1,22 @@
+{% load static %}
+<section class="hero hero--centered" id="inicio" data-story-break aria-labelledby="hero-title">
+  <div class="hero__glow hero__glow--one" aria-hidden="true"></div>
+  <div class="container hero__grid">
+    <div class="hero-brand-display">
+      <svg class="hero-orbits" viewBox="0 0 320 320" aria-hidden="true">
+        <circle class="hero-orbit--outer" data-hero-orbit cx="160" cy="160" r="157" />
+        <g data-hero-orbit>
+          <circle class="hero-orbit--inner" cx="160" cy="160" r="146" />
+          <circle class="hero-orbit-dot" cx="160" cy="14" r="2" />
+        </g>
+      </svg><img class="brand-day" src="{% static 'landing/images/logo-light-transparent.png' %}" alt="Logo VillaTech" width="400" height="400" fetchpriority="high" /><img class="brand-night" src="{% static 'landing/images/logo-dark-transparent.png' %}" alt="Logo VillaTech" width="400" height="400" />
+    </div>
+    <div class="hero__content">
+      <p class="eyebrow text-center d-flex">Diseño · fabricación · software</p><h1 id="hero-title"><span class="hero-title__brand" data-hero-type>VillaTech</span><span class="hero-title__statement">Donde tus ideas <em>toman forma.</em></span></h1><p class="hero__description">Piezas impresas en 3D, prototipos funcionales y soluciones digitales creadas alrededor de tu idea.</p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#contacto">Cuéntanos tu idea →</a><a class="button button--secondary" href="#catalogo">Explorar catálogo</a>
+      </div>
+      <p class="hero__trust">Diseñamos contigo · Fabricamos por capas · Construimos soluciones</p>
+    </div>
+  </div>
+</section>

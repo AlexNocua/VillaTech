@@ -1,0 +1,47 @@
+{% load static %}
+<section class="section print-lab" id="laboratorio" data-print-lab data-story-stage="print" aria-labelledby="print-lab-title">
+    <div class="container">
+        <div class="section-heading section-heading--split">
+            <div>
+                <p class="eyebrow">Laboratorio de fabricación</p>
+                <h2 id="print-lab-title">Así toma forma una pieza, capa por capa.</h2>
+            </div>
+            <p>Esta escena representa el recorrido de una impresión 3D: preparación, deposición controlada del material y validación de la pieza terminada.</p>
+        </div>
+
+        <div class="print-console" data-print-console>
+            <div class="print-stage" aria-hidden="true">
+                {% include 'landing/components/printer-scene.html' with printer_id='lab' %}
+            </div>
+
+            <aside class="print-monitor" aria-label="Estado de la simulación de impresión">
+                <div class="print-monitor__topline">
+                    <span><i aria-hidden="true"></i> Simulación</span>
+                    <small>VT·PRINT 01</small>
+                </div>
+
+                <div class="print-progress">
+                    <span>Progreso de fabricación</span>
+                    <strong data-print-percent>0%</strong>
+                </div>
+                <div class="print-progress__track" data-progress-track role="progressbar" aria-label="Progreso de impresión" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <i data-lab-progress></i>
+                </div>
+
+                <dl class="print-monitor__data">
+                    <div><dt>Material</dt><dd>PLA</dd></div>
+                    <div><dt>Altura de capa</dt><dd>0,20 mm</dd></div>
+                    <div><dt>Boquilla</dt><dd>0,40 mm</dd></div>
+                    <div><dt>Estado</dt><dd data-lab-status aria-live="polite">Preparando</dd></div>
+                </dl>
+
+                <p class="print-monitor__note">Configuración ilustrativa. Los parámetros reales se definen según cada pieza.</p>
+
+                <button class="print-replay" type="button" data-print-replay>
+                    <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-replay"></use></svg>
+                    Repetir impresión
+                </button>
+            </aside>
+        </div>
+    </div>
+</section>

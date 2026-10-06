@@ -1,0 +1,19 @@
+{% extends 'management/base.html' %}{% load management_numbers %}
+{% block content %}
+<p class="eyebrow">VILLATECH / {{ title|upper }}</p><h1>{{ title }}</h1>
+{% if kind == 'sale' %}<p class="muted">Se registra automáticamente como Vendido, con la fecha y hora de venta. El precio es el total cobrado.</p>{% elif kind == 'quote' %}<p class="muted">Prepara el documento antes de confirmar un pedido. Una cotización no se cuenta como venta.</p>{% elif kind == 'expense' %}<p class="muted">Registra el valor pagado y su motivo. La fecha y hora se guardan automáticamente.</p>{% endif %}
+{% if cost_form %}
+<details class="panel optional-cost"><summary>Calcular un precio orientativo · opcional</summary>
+<p class="muted">Calcula el costo de una unidad. El resultado no cambia tu cotización hasta que pulses Aplicar. Puedes modificar el precio después.</p>
+<form method="post" action="{% url 'management:estimate' %}" id="quote-calculator">{% csrf_token %}<div class="form-grid">{{ cost_form.as_div }}</div><button class="button-link" type="submit">Calcular estimativa</button><p id="cost-feedback" role="status" aria-live="polite"></p><button type="button" id="apply-estimate" hidden>Aplicar al primer producto de la cotización</button></form>
+{{ profiles_data|json_script:'printer-profiles' }}
+</details>
+{% endif %}
+<section class="panel"><form method="post" enctype="multipart/form-data" id="entry-form">{% csrf_token %}<div class="form-grid">{{ form.as_div }}</div>
+{% if form.image %}<p class="muted">Imagen de referencia JPG, PNG o WEBP de hasta 5 MB.</p>{% endif %}
+{% if items %}<h2>Productos de la cotización</h2><p class="muted">Usa una variante existente o escribe una pieza personalizada. Deja las medidas y el precio vacíos para tomar los de la variante; los valores que escribas tienen prioridad. Si agregas productos, su suma determina el total.</p>
+{{ items.management_form }}{{ items.non_form_errors }}<div id="quote-items">{% for item in items %}<fieldset class="quote-item"><legend>Producto {{ forloop.counter }}</legend><div class="form-grid">{{ item.as_div }}</div></fieldset>{% endfor %}</div>
+<template id="quote-empty"><fieldset class="quote-item"><legend>Nuevo producto</legend><div class="form-grid">{{ items.empty_form.as_div }}</div></fieldset></template><button type="button" id="add-quote-item">+ Agregar producto</button>
+{% endif %}
+<button class="primary" type="submit">{% if items %}Guardar y generar cotización PDF{% elif kind == 'sale' %}Registrar venta{% elif kind == 'expense' %}Registrar gasto{% else %}Guardar{% endif %} →</button>
+</form></section>{% endblock %}

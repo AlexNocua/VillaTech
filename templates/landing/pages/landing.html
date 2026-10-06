@@ -1,0 +1,42 @@
+{% extends 'landing/base.html' %}
+{% load static %}
+
+{% block title %}
+  VillaTech | Impresión 3D, diseño y desarrollo
+{% endblock %}
+
+{% block meta_description %}
+  Diseñamos, prototipamos y fabricamos piezas en 3D. También desarrollamos soluciones web y automatizaciones pensadas para necesidades reales.
+{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'landing/css/components/hero.css' %}?v=4" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/services.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/print-lab.css' %}?v=4" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/bridge.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/process.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/showcase.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/catalog.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/faq.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/contact.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/scroll-story.css' %}?v=5" />
+{% endblock %}
+
+{% block content %}
+  {% include 'landing/components/scroll-story.html' %}
+  {% include 'landing/components/hero.html' %}
+  {% include 'landing/components/services.html' %}
+  {% include 'landing/components/print-lab.html' %}
+  {% include 'landing/components/bridge.html' %}
+  {% include 'landing/components/process.html' %}
+  {% include 'landing/components/showcase.html' %}
+  {% include 'landing/components/catalog.html' %}
+  {% include 'landing/components/faq.html' %}
+  {% include 'landing/components/finale.html' %}
+  {% include 'landing/components/contact.html' %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'landing/js/catalog.js' %}" defer></script>
+  <script src="{% static 'landing/js/file-uploader.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,169 @@
+<div class="scroll-story" id="story-visualizer" data-scroll-story data-stage="idea" aria-hidden="true">
+    <div class="scroll-story__halo"></div>
+    <div class="scroll-story__frame">
+        <span class="scroll-story__corner scroll-story__corner--one"></span>
+        <span class="scroll-story__corner scroll-story__corner--two"></span>
+        <span class="scroll-story__corner scroll-story__corner--three"></span>
+        <span class="scroll-story__corner scroll-story__corner--four"></span>
+
+        <svg class="scroll-story__canvas" viewBox="0 0 520 520">
+            <defs>
+                <linearGradient id="storySignal" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#159447"/>
+                    <stop offset="1" stop-color="#8FD400"/>
+                </linearGradient>
+                <filter id="storyGlow" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur stdDeviation="4" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+            </defs>
+
+            <g class="story-grid">
+                <path d="M60 130H460M60 260H460M60 390H460"/>
+                <path d="M130 60V460M260 60V460M390 60V460"/>
+            </g>
+
+            <circle class="story-orbit story-orbit--outer" data-story-orbit cx="260" cy="260" r="204"/>
+            <circle class="story-orbit story-orbit--inner" data-story-orbit cx="260" cy="260" r="166"/>
+            <path class="story-signal" data-story-signal d="M260 33V92M260 428V487M33 260H92M428 260H487"/>
+
+            <g class="story-scene story-scene--idea" data-story-scene="idea">
+                <circle class="story-core" cx="260" cy="260" r="30"/>
+                <path data-story-draw d="m184 257 76-44 77 44-77 44-76-44Z"/>
+                <path data-story-draw d="m184 257 76 44v88l-76-44v-88Zm153 0-77 44v88l77-44v-88Z"/>
+                <path data-story-draw d="M260 213v88"/>
+                <path class="story-detail" data-story-draw d="M260 178v-28m-106 70-25-14m237 14 25-14"/>
+                <circle data-story-dot cx="184" cy="257" r="5"/>
+                <circle data-story-dot cx="337" cy="257" r="5"/>
+                <circle data-story-dot cx="260" cy="389" r="5"/>
+                <circle data-story-dot cx="260" cy="143" r="4"/>
+            </g>
+
+            <g class="story-scene story-scene--design" data-story-scene="design">
+                <rect data-story-draw x="156" y="158" width="208" height="204" rx="10"/>
+                <path data-story-draw d="m196 297 64-112 64 112H196Z"/>
+                <circle data-story-draw cx="260" cy="262" r="37"/>
+                <path class="story-measure" data-story-draw d="M156 137h208M145 158v204M176 126v22m168-22v22M134 178h22m-22 164h22"/>
+                <path data-story-draw d="m213 323 47-24 47 24-47 25-47-25Z"/>
+                <path class="story-detail" data-story-draw d="m168 137 10-6v12-6h164m-197 33-6 10h12-6v150"/>
+                <circle data-story-dot cx="260" cy="262" r="4"/>
+            </g>
+
+            <g class="story-scene story-scene--print" data-story-scene="print">
+                <svg x="45" y="65" width="430" height="390" viewBox="0 0 560 420">{% include 'landing/components/printer-scene.html' with printer_id='story' %}</svg>
+            </g>
+
+            <g class="story-scene story-scene--solder" data-story-scene="solder">
+                <rect class="story-board" data-story-draw x="142" y="166" width="238" height="188" rx="16"/>
+                <path data-solder-trace d="M171 208h70v40h79v-46h32"/>
+                <path data-solder-trace d="M171 311h55v-35h94v38h32"/>
+                <path data-solder-trace d="M188 236v55h62"/>
+                <rect class="story-chip" data-story-draw x="246" y="263" width="50" height="40" rx="5"/>
+                <path class="story-detail" data-story-draw d="M234 270h12m-12 13h12m-12 13h12m50-26h12m-12 13h12m-12 13h12"/>
+                <circle data-story-dot cx="171" cy="208" r="6"/>
+                <circle data-story-dot cx="352" cy="202" r="6"/>
+                <circle data-story-dot cx="171" cy="311" r="6"/>
+                <circle data-story-dot cx="352" cy="314" r="6"/>
+                <path class="story-motion-path" data-solder-path d="M171 208h70v40h79v-46h32"/>
+                <g class="story-soldering-iron" data-solder-iron>
+                    <path d="M-52-15h48v30h-48c-12 0-12-30 0-30Z"/>
+                    <path d="M-4-8h36L53 0 32 8H-4V-8Z"/>
+                    <circle cx="55" cy="0" r="4"/>
+                </g>
+                <g class="story-sparks">
+                    <circle data-solder-spark cx="0" cy="0" r="3"/>
+                    <circle data-solder-spark cx="0" cy="0" r="2"/>
+                    <circle data-solder-spark cx="0" cy="0" r="2.5"/>
+                    <circle data-solder-spark cx="0" cy="0" r="1.8"/>
+                </g>
+            </g>
+
+            <g class="story-scene story-scene--code" data-story-scene="code">
+                <rect data-story-draw x="138" y="153" width="244" height="214" rx="13"/>
+                <path class="story-window-bar" data-story-draw d="M138 196h244"/>
+                <circle data-story-dot cx="163" cy="175" r="4"/>
+                <circle data-story-dot cx="178" cy="175" r="4"/>
+                <circle data-story-dot cx="193" cy="175" r="4"/>
+                <path class="story-bracket" data-story-draw d="m205 226-28 28 28 28m110-56 28 28-28 28"/>
+                <g class="story-code-lines">
+                    <path data-code-line d="M226 228h56"/>
+                    <path data-code-line d="M216 250h87"/>
+                    <path data-code-line d="M226 272h62"/>
+                    <path data-code-line d="M196 319h128"/>
+                    <path data-code-line d="M196 338h89"/>
+                </g>
+                <path class="story-detail" data-story-draw d="M138 301h244M330 319h27m-27 19h18"/>
+                <circle data-story-dot cx="362" cy="319" r="4"/>
+                <circle data-story-dot cx="353" cy="338" r="4"/>
+            </g>
+
+            <g class="story-scene story-scene--solution" data-story-scene="solution">
+                <path data-story-draw d="M260 172 350 224v104l-90 52-90-52V224l90-52Z"/>
+                <path data-story-draw d="m170 224 90 52 90-52M260 276v104"/>
+                <circle data-story-dot cx="260" cy="172" r="7"/>
+                <circle data-story-dot cx="350" cy="224" r="7"/>
+                <circle data-story-dot cx="350" cy="328" r="7"/>
+                <circle data-story-dot cx="260" cy="380" r="7"/>
+                <circle data-story-dot cx="170" cy="328" r="7"/>
+                <circle data-story-dot cx="170" cy="224" r="7"/>
+                <path class="story-check" data-story-draw d="m222 276 27 27 55-64"/>
+                <path class="story-detail" data-story-draw d="M260 172v-38m90 90 34-20m-34 124 34 20m-124 32v38m-90-90-34 20m34-124-34-20"/>
+                <circle data-story-dot cx="260" cy="128" r="4"/>
+                <circle data-story-dot cx="390" cy="201" r="4"/>
+                <circle data-story-dot cx="390" cy="351" r="4"/>
+            </g>
+
+            <g class="story-scene story-scene--support" data-story-scene="support">
+                <path data-story-draw d="M188 220c0-43 32-72 73-72 43 0 72 25 72 62 0 66-70 57-70 105"/>
+                <circle class="story-core" cx="263" cy="357" r="9"/>
+                <path data-story-draw d="M158 260a102 102 0 0 0 204 0M184 260a76 76 0 0 0 152 0"/>
+                <path class="story-detail" data-story-draw d="M195 397h130m-104 17h78"/>
+                <circle data-story-dot cx="158" cy="260" r="5"/>
+                <circle data-story-dot cx="362" cy="260" r="5"/>
+                <circle data-story-dot cx="208" cy="397" r="4"/>
+                <circle data-story-dot cx="312" cy="397" r="4"/>
+            </g>
+
+            <g class="story-scene story-scene--launch" data-story-scene="launch">
+                <circle data-story-draw cx="260" cy="260" r="95"/>
+                <circle data-story-draw cx="260" cy="260" r="63"/>
+                <path class="story-power" data-story-draw d="M260 176v84m-48-53a67 67 0 1 0 96 0"/>
+                <path data-story-draw d="M260 126V91M260 429v-35M126 260H91M429 260h-35M165 165l-25-25m240 240-25-25m0-190 25-25M140 380l25-25"/>
+                <path class="story-detail" data-story-draw d="M211 112a162 162 0 0 1 98 0M408 211a162 162 0 0 1 0 98M309 408a162 162 0 0 1-98 0M112 309a162 162 0 0 1 0-98"/>
+                <circle class="story-core" cx="260" cy="260" r="18"/>
+            </g>
+        </svg>
+
+        <div class="scroll-story__terminal">
+            <span data-story-code-line></span>
+            <span data-story-code-line></span>
+            <span data-story-code-line></span>
+        </div>
+
+        <div class="scroll-story__detail">
+            <span class="scroll-story__kicker" data-story-kicker>PUNTO DE PARTIDA</span>
+            <strong data-story-title>Una necesidad se convierte en concepto.</strong>
+            <p data-story-description>Escuchamos el objetivo, entendemos el contexto y definimos qué debe tomar forma.</p>
+            <div class="scroll-story__metrics">
+                <span><b data-story-metric-value>Brief</b><small data-story-metric-label>Entrada</small></span>
+                <span><b data-story-metric-value>Idea</b><small data-story-metric-label>Proceso</small></span>
+                <span><b data-story-metric-value>Meta</b><small data-story-metric-label>Salida</small></span>
+            </div>
+        </div>
+
+        <div class="scroll-story__status">
+            <span data-story-index>01</span>
+            <i></i>
+            <strong data-story-label>IDEA</strong>
+        </div>
+    </div>
+</div>
+
+<button class="story-focus-toggle" type="button" data-story-focus-toggle aria-controls="story-visualizer" aria-pressed="false" aria-label="Ver únicamente la animación">
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"/>
+        <circle cx="12" cy="12" r="3.5"/>
+    </svg>
+    <span data-story-focus-label>Ver solo animación</span>
+    <kbd>Esc</kbd>
+</button>

@@ -1,0 +1,7 @@
+{% extends 'management/base.html' %}{% load management_numbers %}{% block content %}
+<p class="eyebrow">{{ order.get_kind_display|upper }} / DOCUMENTO</p><h1>{{ order.title }}</h1><p>{{ order.customer }} · {{ order.created_at|date:'d/m/Y H:i' }}</p>
+<section class="panel"><h2>Tu cotización está lista.</h2><p>Total registrado: $ {{ order.amount|co_number }} COP · {{ order.get_status_display }}</p>
+<div class="action-row"><a class="button-link" href="{% url 'management:quote_pdf' order.pk %}" target="_blank" rel="noopener">Abrir / descargar PDF →</a><a class="button-link" href="{% url 'management:edit' order.kind order.pk %}">Editar {{ order.get_kind_display|lower }}</a>
+{% if order.kind == 'quote' %}<form method="post" action="{% url 'management:transition' order.pk 'order' %}">{% csrf_token %}<button class="primary">Confirmar como pedido</button></form>{% elif order.kind == 'order' and order.status != 'cancelled' %}<form method="post" action="{% url 'management:transition' order.pk 'sale' %}">{% csrf_token %}<button class="primary">Registrar como vendido</button></form>{% endif %}</div>
+<p class="muted">Documento con fondo blanco y el logo elegido. Las cotizaciones y pedidos no cuentan como ingresos; al registrar como vendido se contabiliza una sola venta.</p>
+<iframe class="quote-preview" src="{% url 'management:quote_pdf' order.pk %}" title="Vista previa de la cotización"></iframe></section>{% endblock %}

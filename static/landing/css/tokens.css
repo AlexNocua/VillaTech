@@ -1,0 +1,153 @@
+/* Colores globales y sistema visual de VillaTech */
+:root {
+    /* =========================
+       VILLATECH BRAND
+       ========================= */
+    --brand-green: #159447;
+    --brand-green-dark: #0B6E34;
+    --brand-lime: #8FD400;
+    --brand-lime-hover: #76B500;
+    --brand-lime-soft: #EAF8CC;
+    --brand-navy: #07182A;
+    --brand-navy-light: #10283D;
+    --brand-dark: #030B12;
+    --brand-white: #FFFFFF;
+
+    /* =========================
+       NEUTRALS
+       ========================= */
+    --neutral-50: #F7F9F8;
+    --neutral-100: #F0F3F1;
+    --neutral-200: #E4E9E6;
+    --neutral-300: #CCD3CF;
+    --neutral-500: #6B7470;
+    --neutral-600: #525C57;
+    --neutral-800: #26302B;
+    --neutral-900: #101820;
+
+    /* =========================
+       STATUS
+       ========================= */
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --info: #3B82F6;
+
+    /* =========================
+       TYPOGRAPHY, LAYOUT & MOTION
+       ========================= */
+    --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --container: 1180px;
+    --header-height: 78px;
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --transition-fast: 180ms ease;
+    --transition-smooth: 420ms var(--ease-out);
+}
+
+[data-theme="light"] {
+    color-scheme: light;
+
+    /* Backgrounds */
+    --color-background: #FFFFFF;
+    --color-background-secondary: #F7F9F8;
+    --color-surface: #FFFFFF;
+    --color-surface-hover: #F0F3F1;
+
+    /* Text */
+    --color-text: #07182A;
+    --color-text-secondary: #525C57;
+    --color-text-muted: #6B7470;
+
+    /* Primary */
+    --color-primary: #159447;
+    --color-primary-hover: #0B6E34;
+    --color-accent: #8FD400;
+    --color-accent-hover: #76B500;
+
+    /* Borders */
+    --color-border: #E4E9E6;
+    --color-border-strong: #CCD3CF;
+
+    /* Buttons */
+    --button-primary-bg: #159447;
+    --button-primary-text: #FFFFFF;
+    --button-primary-hover: #0B6E34;
+
+    /* Cards */
+    --card-background: #FFFFFF;
+    --card-border: #E4E9E6;
+
+    /* Navbar */
+    --navbar-background: rgba(255, 255, 255, 0.92);
+    --navbar-text: #07182A;
+
+    /* Shadows */
+    --shadow-card: 0 10px 30px rgba(7, 24, 42, 0.08);
+
+    /* Extended tokens */
+    --color-primary-soft: #EAF8CC;
+    --color-on-dark: #FFFFFF;
+    --color-field: #FFFFFF;
+    --color-overlay: rgba(7, 24, 42, 0.52);
+    --hero-grid-line: rgba(7, 24, 42, 0.055);
+    --studio-background: #07182A;
+    --studio-surface: #0B1B29;
+    --studio-border: #1E3445;
+}
+
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* Backgrounds */
+    --color-background: #030B12;
+    --color-background-secondary: #07182A;
+    --color-surface: #0B1B29;
+    --color-surface-hover: #10283D;
+
+    /* Text */
+    --color-text: #FFFFFF;
+    --color-text-secondary: #CCD3CF;
+    --color-text-muted: #89938E;
+
+    /* Primary */
+    --color-primary: #8FD400;
+    --color-primary-hover: #A6EB19;
+    --color-accent: #159447;
+    --color-accent-hover: #1DB45A;
+
+    /* Borders */
+    --color-border: #1E3445;
+    --color-border-strong: #315066;
+
+    /* Buttons */
+    --button-primary-bg: #8FD400;
+    --button-primary-text: #07182A;
+    --button-primary-hover: #A6EB19;
+
+    /* Cards */
+    --card-background: #0B1B29;
+    --card-border: #1E3445;
+
+    /* Navbar */
+    --navbar-background: rgba(3, 11, 18, 0.92);
+    --navbar-text: #FFFFFF;
+
+    /* Shadows */
+    --shadow-card: 0 15px 40px rgba(0, 0, 0, 0.35);
+
+    /* Extended tokens */
+    --color-primary-soft: rgba(143, 212, 0, 0.12);
+    --color-on-dark: #FFFFFF;
+    --color-field: #07182A;
+    --color-overlay: rgba(0, 0, 0, 0.62);
+    --hero-grid-line: rgba(204, 211, 207, 0.055);
+    --studio-background: #07182A;
+    --studio-surface: #0B1B29;
+    --studio-border: #315066;
+}
+

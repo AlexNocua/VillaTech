@@ -1,0 +1,13 @@
+**/.env
+.env.production
+**/*.sqlite3
+**/__pycache__
+**/.venv
+**/.virenv
+media
+Files
+backend/Files
+staticfiles
+backups
+.git
+**/*.zip

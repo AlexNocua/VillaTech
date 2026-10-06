@@ -1,0 +1,5 @@
+Railway: 23 pruebas funcionales + 2 pruebas healthcheck aprobadas.
+collectstatic: 194 archivos, 178 procesados por WhiteNoise.
+check --deploy: solo avisos HSTS W005/W021 documentados.
+Sintaxis de start-railway.sh correcta.
+Sin despliegue real: Railway, volumen, Postgres, Redis, HTTPS y correo pendientes de verificación en cuenta destino.

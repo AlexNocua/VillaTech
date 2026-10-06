@@ -1,0 +1,128 @@
+{% load static %}
+<section class="section catalog" id="catalogo" data-catalog data-story-break aria-labelledby="catalog-title">
+  <div class="container">
+    <header class="catalog__heading">
+      <div class="catalog__brand" aria-hidden="true">
+        <img src="{% static 'landing/images/villatech-logo-256.webp' %}" srcset="{% static 'landing/images/villatech-logo-256.webp' %} 256w, {% static 'landing/images/villatech-logo-512.webp' %} 512w" sizes="88px" alt="" width="88" height="88" loading="lazy" decoding="async" />
+        <span>CAT · 3D</span>
+      </div>
+      <div>
+        <p class="eyebrow">Catálogo inicial</p>
+        <h2 id="catalog-title">Objetos con propósito, impresos por capas.</h2>
+      </div>
+      <p>Explora referencias para personalizar o usar como punto de partida. Medidas, materiales, colores y acabados se confirman en cada cotización.</p>
+    </header>
+
+    <div class="catalog-toolbar" aria-label="Controles del catálogo">
+      <label class="catalog-search" for="catalog-search">
+        <span class="sr-only">Buscar productos</span>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m16.4 16.4 4 4"></path>
+        </svg>
+        <input id="catalog-search" type="search" placeholder="Buscar por nombre o uso…" autocomplete="off" data-catalog-search />
+      </label>
+
+      <div class="catalog-filters" role="group" aria-label="Filtrar por categoría" data-catalog-filters>
+        <button type="button" class="is-active" data-catalog-filter="all" aria-pressed="true">Todos</button>
+        {% for category in catalog_categories %}<button type="button" data-catalog-filter="{{ category.category_name|slugify }}" aria-pressed="false">{{ category.category_name }}</button>{% endfor %}
+      </div>
+
+      <label class="catalog-sort" for="catalog-sort">
+        <span>Orden</span>
+        <select id="catalog-sort" data-catalog-sort>
+          <option value="featured">Destacados</option>
+          <option value="name">Nombre A–Z</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="catalog-meta">
+      <p data-catalog-count aria-live="polite">6 productos disponibles</p>
+      <span>Producción bajo pedido · Cotización personalizada</span>
+    </div>
+
+    <div class="catalog-grid" data-catalog-grid>
+      {% if catalog_products %}
+        {% for product in catalog_products %}
+          <article class="product-card"
+            data-product-card
+            data-category="{{ product.category_slug|default:'otros' }}"
+            data-name="{{ product.name|lower }} {{ product.description|lower }} {% for tag in product.tags %}
+              {{ tag|lower }}
+            {% endfor %}"
+            data-featured="{{ product.is_featured|yesno:'1,0' }}">
+            <div class="product-card__visual product-card__visual--{{ product.category_slug|default:'otros' }}">
+              {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.name }}" width="720" height="540" loading="lazy" decoding="async" />
+              {% else %}
+                <span class="product-card__layer product-card__layer--one"></span>
+                <span class="product-card__layer product-card__layer--two"></span>
+                <svg aria-hidden="true">
+                  <use href="{% static 'landing/icons/sprite.svg' %}#icon-cube"></use>
+                </svg>
+              {% endif %}
+              {% if product.is_featured %}
+                <span class="product-card__badge">Destacado</span>
+              {% endif %}
+            </div>
+            <div class="product-card__body">
+              <div class="product-card__topline">
+                <span>{{ product.mtm_category.name|default:product.mtm_category }}</span>
+                <span>
+                  {% if product.is_available == False %}
+                    No disponible
+                  {% else %}
+                    Bajo pedido
+                  {% endif %}
+                </span>
+              </div>
+              <h3>{{ product.name }}</h3>
+              <p>{{ product.description }}</p>
+              {% if product.tags %}
+                <div class="product-card__tags">
+                  {% for tag in product.tags %}
+                    <span>{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+              {% if product.variants.all %}
+<div class="size-estimates">
+<p><strong>Tamaños y precios estimados</strong></p>
+{% for variant in product.variants.all %}{% if variant.is_active %}
+<div class="size-estimate">
+{% if variant.image %}<img src="{{ variant.image.url }}" alt="{{ product.name }} · {{ variant.name }}" width="80" height="80" loading="lazy">{% endif %}
+<div><strong>{{ variant.name }}</strong><br><small>{{ variant.length_cm }} × {{ variant.width_cm }} × {{ variant.height_cm }} cm · largo × ancho × alto</small><br><strong>$ {{ variant.estimated_price|floatformat:0 }} COP</strong></div>
+</div>{% endif %}{% endfor %}
+<small>Estimación orientativa. Material, soportes y acabado se confirman al cotizar.</small>
+</div>
+{% endif %}
+<div class="product-card__footer">
+                <strong>{{ product.price_display|default:'Cotización según acabado' }}</strong>
+                {% if product.is_available == False %}
+                  <button type="button" disabled>No disponible</button>
+                {% else %}
+                  <a href="#contacto" data-catalog-quote data-product-name="{{ product.name }}">
+                    Cotizar<svg aria-hidden="true">
+                      <use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-right"></use>
+                    </svg>
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}<p class="catalog__notice">Pronto encontrarás aquí nuestras referencias publicadas. Cuéntanos tu idea para una cotización personalizada.</p>
+      {% endif %}
+    </div>
+
+    <div class="catalog-empty" data-catalog-empty hidden>
+      <span aria-hidden="true">0 resultados</span>
+      <h3>No encontramos una referencia con esos filtros.</h3>
+      <p>Prueba otra palabra o vuelve a ver todas las categorías.</p>
+      <button class="button button--secondary" type="button" data-catalog-reset>Limpiar filtros</button>
+    </div>
+
+    <p class="catalog__notice">Imágenes y descripciones ilustrativas. La disponibilidad, el color, la resistencia, las medidas y el acabado final se confirman antes de fabricar.</p>
+  </div>
+</section>

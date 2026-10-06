@@ -1,0 +1,651 @@
+.contact {
+    padding: 30px 0 clamp(88px, 10vw, 140px);
+    background: var(--color-background);
+}
+
+.contact__shell {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(430px, 0.72fr);
+    gap: clamp(42px, 7vw, 90px);
+    padding: clamp(34px, 6vw, 74px);
+    overflow: hidden;
+    border: 1px solid #1E3445;
+    border-radius: var(--radius-xl);
+    background:
+        radial-gradient(circle at 8% 0%, rgba(21, 148, 71, 0.34), transparent 30%),
+        linear-gradient(135deg, #07182A, #030B12);
+    box-shadow: 0 34px 90px rgba(3, 11, 18, 0.18);
+}
+
+.contact__shell::before {
+    position: absolute;
+    right: -170px;
+    bottom: -180px;
+    width: 480px;
+    height: 480px;
+    border: 1px solid rgba(143, 212, 0, 0.13);
+    border-radius: 50%;
+    content: "";
+    box-shadow: 0 0 0 70px rgba(143, 212, 0, 0.025), 0 0 0 140px rgba(143, 212, 0, 0.015);
+    pointer-events: none;
+}
+
+.contact__content,
+.contact-form-card {
+    position: relative;
+    z-index: 1;
+}
+
+.eyebrow--light {
+    color: var(--brand-lime);
+}
+
+.contact__content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.contact__brand-signature {
+    display: inline-flex;
+    gap: 13px;
+    align-items: center;
+    align-self: flex-start;
+    margin-bottom: 34px;
+    padding: 8px 15px 8px 8px;
+    border: 1px solid #1E3445;
+    border-radius: 99px;
+    background: rgba(11, 27, 41, 0.72);
+}
+
+.contact__brand-signature img {
+    width: 54px;
+    height: 54px;
+    border: 1px solid rgba(143, 212, 0, 0.32);
+    border-radius: 50%;
+    background: #FFFFFF;
+    object-fit: cover;
+}
+
+.contact__brand-signature strong,
+.contact__brand-signature small {
+    display: block;
+}
+
+.contact__brand-signature strong {
+    color: var(--brand-white);
+    font-size: 0.86rem;
+    letter-spacing: -0.02em;
+}
+
+.contact__brand-signature small {
+    color: #89938E;
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.04em;
+}
+
+.contact__content h2 {
+    max-width: 620px;
+    color: var(--brand-white);
+}
+
+.contact__content>p:not(.eyebrow) {
+    max-width: 580px;
+    margin: 28px 0 35px;
+    color: #AAB4AF;
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+.contact__channels {
+    display: grid;
+    gap: 10px;
+}
+
+.contact__channels>a {
+    display: grid;
+    grid-template-columns: 44px 1fr 18px;
+    gap: 13px;
+    align-items: center;
+    max-width: 450px;
+    padding: 13px 15px;
+    border: 1px solid #1E3445;
+    border-radius: 13px;
+    background: rgba(11, 27, 41, 0.62);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.contact__channels>a:hover {
+    border-color: #315066;
+    background: #0B1B29;
+    transform: translateX(4px);
+}
+
+.contact__channel-icon {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border-radius: 11px;
+    background: rgba(143, 212, 0, 0.11);
+    color: var(--brand-lime);
+}
+
+.contact__channel-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.contact__channels small,
+.contact__channels strong {
+    display: block;
+}
+
+.contact__channels small {
+    margin-bottom: 2px;
+    color: #89938E;
+    font-size: 0.67rem;
+}
+
+.contact__channels strong {
+    overflow: hidden;
+    color: var(--brand-white);
+    font-size: 0.79rem;
+    font-weight: 680;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.contact__channel-arrow {
+    width: 17px;
+    height: 17px;
+    color: #89938E;
+}
+
+.contact-form-card {
+    padding: clamp(24px, 4vw, 36px);
+    border: 1px solid var(--color-border);
+    border-radius: 21px;
+    background: var(--card-background);
+    color: var(--color-text);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
+}
+
+.contact-form-card__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.contact-form-card__heading i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 5px var(--color-primary-soft);
+}
+
+.contact-form {
+    display: grid;
+    gap: 17px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px;
+}
+
+.form-field {
+    display: grid;
+    gap: 7px;
+}
+
+.form-field label {
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+    font-weight: 680;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    outline: none;
+    background: var(--color-field);
+    color: var(--color-text);
+    font-size: 0.84rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.form-field input,
+.form-field select {
+    height: 48px;
+    padding: 0 13px;
+}
+
+.form-field textarea {
+    min-height: 112px;
+    padding: 12px 13px;
+    resize: vertical;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.72;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.contact-form__submit {
+    width: 100%;
+    margin-top: 3px;
+}
+
+.contact-form__consent {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 9px;
+    align-items: start;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.68rem;
+    line-height: 1.55;
+}
+
+.contact-form__consent input {
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: var(--color-primary);
+}
+
+.contact-form__consent button {
+    display: inline;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 750;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.contact-form__notice {
+    margin: -4px 8px 0;
+    color: var(--color-text-muted);
+    font-size: 0.65rem;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.form-alert {
+    margin-bottom: 18px;
+    padding: 11px 13px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+}
+
+.form-alert--success {
+    border-color: color-mix(in srgb, var(--success) 42%, var(--color-border));
+    color: var(--success);
+}
+
+.form-alert--error,
+.form-alert--danger {
+    border-color: color-mix(in srgb, var(--danger) 42%, var(--color-border));
+    color: var(--danger);
+}
+
+@media (max-width: 960px) {
+    .contact__shell {
+        grid-template-columns: 1fr;
+    }
+
+    .contact__content {
+        max-width: 700px;
+    }
+}
+
+@media (max-width: 600px) {
+    .contact__shell {
+        width: min(100% - 20px, var(--container));
+        padding: 38px 22px 22px;
+        border-radius: 24px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-form-card {
+        padding: 22px 17px;
+    }
+
+    .contact__brand-signature {
+        margin-bottom: 27px;
+    }
+}
+
+.form-field--upload {
+    gap: 9px;
+}
+
+.upload-field {
+    display: grid;
+    gap: 10px;
+}
+
+.upload-field__heading {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.upload-field__heading label {
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+    font-weight: 680;
+}
+
+.upload-field__heading>span {
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 99px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.upload-field__dropzone {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    min-height: 116px;
+    padding: 19px;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--color-primary) 4%, transparent),
+            transparent 54%),
+        var(--color-field);
+    cursor: pointer;
+    transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.upload-field__dropzone:hover,
+.upload-field__dropzone.is-dragging {
+    border-color: var(--color-primary);
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--color-primary) 11%, transparent),
+            transparent 65%),
+        var(--color-field);
+    box-shadow: 0 0 0 3px var(--color-primary-soft);
+    transform: translateY(-2px);
+}
+
+.upload-field__dropzone.has-files {
+    border-style: solid;
+    border-color:
+        color-mix(in srgb,
+            var(--color-primary) 55%,
+            var(--color-border));
+}
+
+.upload-field__input:focus-visible+.upload-field__dropzone {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 3px;
+}
+
+.upload-field__icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb,
+            var(--color-primary) 25%,
+            var(--color-border));
+    border-radius: 14px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.upload-field__icon svg {
+    width: 25px;
+    height: 25px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.upload-field__copy {
+    min-width: 0;
+}
+
+.upload-field__copy strong,
+.upload-field__copy span {
+    display: block;
+}
+
+.upload-field__copy strong {
+    margin-bottom: 3px;
+    color: var(--color-text);
+    font-size: 0.84rem;
+    font-weight: 720;
+}
+
+.upload-field__copy span {
+    color: var(--color-text-muted);
+    font-size: 0.67rem;
+}
+
+.upload-field__button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 13px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-background-secondary);
+    color: var(--color-text-secondary);
+    font-size: 0.66rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.upload-field__selection {
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 13px;
+    background: var(--color-background-secondary);
+}
+
+.upload-field__selection[hidden],
+.upload-field__error[hidden] {
+    display: none;
+}
+
+.upload-field__selection-header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2px 3px 9px;
+}
+
+.upload-field__selection-header>span {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+}
+
+.upload-field__selection-header button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 0.62rem;
+    font-weight: 750;
+}
+
+.upload-field__list {
+    display: grid;
+    gap: 7px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.upload-file {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 32px;
+    gap: 10px;
+    align-items: center;
+    padding: 9px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--card-background);
+}
+
+.upload-file__type {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.upload-file__information {
+    min-width: 0;
+}
+
+.upload-file__information strong,
+.upload-file__information span {
+    display: block;
+}
+
+.upload-file__information strong {
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: 0.72rem;
+    font-weight: 680;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.upload-file__information span {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+}
+
+.upload-file__remove {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    padding: 0 0 2px;
+    place-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.upload-file__remove:hover {
+    border-color: var(--danger);
+    background:
+        color-mix(in srgb,
+            var(--danger) 9%,
+            transparent);
+    color: var(--danger);
+}
+
+.contact-form .upload-field__help {
+    margin: 0 3px;
+    color: var(--color-text-muted);
+    font-size: 0.61rem;
+    line-height: 1.55;
+}
+
+.upload-field__error {
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid color-mix(in srgb,
+            var(--danger) 45%,
+            var(--color-border));
+    border-radius: 9px;
+    background:
+        color-mix(in srgb,
+            var(--danger) 8%,
+            transparent);
+    color: var(--danger);
+    font-size: 0.64rem;
+}
+
+@media (max-width: 600px) {
+    .upload-field__dropzone {
+        grid-template-columns: 46px minmax(0, 1fr);
+        min-height: 126px;
+        padding: 16px;
+    }
+
+    .upload-field__icon {
+        width: 46px;
+        height: 46px;
+    }
+
+    .upload-field__button {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+}

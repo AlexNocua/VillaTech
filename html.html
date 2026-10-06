@@ -1,0 +1,157 @@
+<style>
+    [data-theme="light"] {
+
+        /* Backgrounds */
+
+        --color-background: #FFFFFF;
+        --color-background-secondary: #F7F9F8;
+
+        --color-surface: #FFFFFF;
+        --color-surface-hover: #F0F3F1;
+
+
+        /* Text */
+
+        --color-text: #07182A;
+        --color-text-secondary: #525C57;
+        --color-text-muted: #6B7470;
+
+
+        /* Primary */
+
+        --color-primary: #159447;
+        --color-primary-hover: #0B6E34;
+
+        --color-accent: #8FD400;
+        --color-accent-hover: #76B500;
+
+
+        /* Borders */
+
+        --color-border: #E4E9E6;
+        --color-border-strong: #CCD3CF;
+
+
+        /* Buttons */
+
+        --button-primary-bg: #159447;
+        --button-primary-text: #FFFFFF;
+
+        --button-primary-hover: #0B6E34;
+
+
+        /* Cards */
+
+        --card-background: #FFFFFF;
+        --card-border: #E4E9E6;
+
+
+        /* Navbar */
+
+        --navbar-background: rgba(255, 255, 255, 0.92);
+        --navbar-text: #07182A;
+
+
+        /* Shadows */
+
+        --shadow-card:
+            0 10px 30px rgba(7, 24, 42, 0.08);
+    }
+
+    [data-theme="dark"] {
+
+        /* Backgrounds */
+
+        --color-background: #030B12;
+        --color-background-secondary: #07182A;
+
+        --color-surface: #0B1B29;
+        --color-surface-hover: #10283D;
+
+
+        /* Text */
+
+        --color-text: #FFFFFF;
+        --color-text-secondary: #CCD3CF;
+        --color-text-muted: #89938E;
+
+
+        /* Primary */
+
+        --color-primary: #8FD400;
+        --color-primary-hover: #A6EB19;
+
+        --color-accent: #159447;
+        --color-accent-hover: #1DB45A;
+
+
+        /* Borders */
+
+        --color-border: #1E3445;
+        --color-border-strong: #315066;
+
+
+        /* Buttons */
+
+        --button-primary-bg: #8FD400;
+        --button-primary-text: #07182A;
+
+        --button-primary-hover: #A6EB19;
+
+
+        /* Cards */
+
+        --card-background: #0B1B29;
+        --card-border: #1E3445;
+
+
+        /* Navbar */
+
+        --navbar-background: rgba(3, 11, 18, 0.92);
+        --navbar-text: #FFFFFF;
+
+
+        /* Shadows */
+
+        --shadow-card:
+            0 15px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+
+        padding: 0.85rem 1.5rem;
+
+        border-radius: 8px;
+        border: none;
+
+        font-weight: 600;
+        cursor: pointer;
+
+        transition:
+            background-color 0.25s ease,
+            color 0.25s ease,
+            transform 0.25s ease,
+            box-shadow 0.25s ease;
+    }
+
+
+    .btn-primary {
+        background: var(--button-primary-bg);
+        color: var(--button-primary-text);
+    }
+
+
+    .btn-primary:hover {
+        background: var(--button-primary-hover);
+
+        transform: translateY(-2px);
+    }
+</style>
+
+<button class="btn btn-primary">
+    Cotiza tu proyecto
+</button>

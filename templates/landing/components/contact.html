@@ -1,0 +1,145 @@
+{% load static %}
+<section class="contact" id="contacto" data-story-stop aria-labelledby="contact-title">
+  <div class="container contact__shell">
+    <div class="contact__content">
+      <div class="contact__brand-signature">
+        <img src="{% static 'landing/images/villatech-logo-256.webp' %}" alt="" width="64" height="64" loading="lazy" decoding="async" />
+        <span><strong>VillaTech</strong><small>Ubaté · Cundinamarca</small></span>
+      </div>
+      <p class="eyebrow eyebrow--light">Comencemos</p>
+      <h2 id="contact-title">Tu idea puede ser el siguiente proyecto.</h2>
+      <p>Cuéntanos qué quieres crear, mejorar o automatizar. Revisaremos el punto de partida y los siguientes pasos.</p>
+
+      <div class="contact__channels">
+        {% if whatsapp_url %}
+          <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">
+            <span class="contact__channel-icon">
+              <svg aria-hidden="true">
+                <use href="{% static 'landing/icons/sprite.svg' %}#icon-message"></use>
+              </svg>
+            </span>
+            <span><small>Conversar por</small><strong>WhatsApp</strong></span>
+            <svg class="contact__channel-arrow" aria-hidden="true">
+              <use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-up-right"></use>
+            </svg>
+          </a>
+        {% endif %}
+        {% if site_email %}
+          <a href="mailto:{{ site_email }}">
+            <span class="contact__channel-icon">
+              <svg aria-hidden="true">
+                <use href="{% static 'landing/icons/sprite.svg' %}#icon-mail"></use>
+              </svg>
+            </span>
+            <span><small>Escribir a</small><strong>{{ site_email }}</strong></span>
+            <svg class="contact__channel-arrow" aria-hidden="true">
+              <use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-up-right"></use>
+            </svg>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="contact-form-card">
+      <div class="contact-form-card__heading">
+        <span>Solicitud de proyecto</span>
+        <i aria-hidden="true"></i>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="form-alert form-alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <form class="contact-form" action="{% url 'landing:contact_form_action' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="form-field">
+            <label for="contact-name">Nombre</label>
+            <input id="contact-name" name="name" type="text" autocomplete="name" placeholder="Tu nombre" required />
+          </div>
+          <div class="form-field">
+            <label for="contact-phone">Teléfono</label>
+            <input id="contact-phone" name="phone" type="tel" autocomplete="tel" placeholder="Tu número" required />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="contact-email">Correo electrónico</label>
+          <input id="contact-email" name="email" type="email" autocomplete="email" placeholder="nombre@correo.com" required />
+        </div>
+
+        <div class="form-field">
+          <label for="contact-service">¿Qué necesitas?</label>
+          <select id="contact-service" name="service" required>
+            <option value="" selected disabled>Selecciona un servicio</option>
+            <option value="impresion-3d">Impresión 3D</option>
+            <option value="diseno-prototipado">Diseño y prototipado</option>
+            <option value="desarrollo-digital">Desarrollo digital</option>
+            <option value="otro">Otro proyecto</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="contact-message">Describe tu idea</label>
+          <textarea id="contact-message" name="message" rows="4" placeholder="Qué quieres crear, para qué lo necesitas y cualquier detalle que ya tengas…" required></textarea>
+        </div>
+
+        <label class="contact-form__consent">
+          <input type="checkbox" name="privacy_consent" value="accepted" required />
+          <span>He leído el <button type="button" data-legal-open="privacy">aviso de privacidad</button> y autorizo el uso de mis datos únicamente para responder esta solicitud.</span>
+        </label>
+
+        <div class="form-field form-field--upload">
+          <div class="upload-field" data-file-uploader>
+            <div class="upload-field__heading">
+              <label for="contact-files">Archivos de referencia</label>
+              <span>Opcional</span>
+            </div>
+
+            <input class="upload-field__input sr-only" id="contact-files" name="reference_files" type="file" accept=".stl,.obj,.3mf,.step,.stp,.pdf,.png,.jpg,.jpeg,.webp" aria-describedby="contact-files-help" data-file-input multiple />
+
+            <label class="upload-field__dropzone" for="contact-files" data-file-dropzone>
+              <span class="upload-field__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 16V4"></path>
+                  <path d="m7.5 8.5 4.5-4.5 4.5 4.5"></path>
+                  <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"></path>
+                </svg>
+              </span>
+
+              <span class="upload-field__copy">
+                <strong>Arrastra tus archivos aquí</strong>
+                <span>o haz clic para seleccionarlos</span>
+              </span>
+
+              <span class="upload-field__button">Explorar archivos</span>
+            </label>
+
+            <div class="upload-field__selection" data-file-selection hidden>
+              <div class="upload-field__selection-header">
+                <span data-file-count>0 archivos seleccionados</span>
+
+                <button type="button" data-file-clear>Quitar todos</button>
+              </div>
+
+              <ul class="upload-field__list" data-file-list></ul>
+            </div>
+
+            <p class="upload-field__error" data-file-error role="alert" hidden></p>
+
+            <p class="upload-field__help" id="contact-files-help">Hasta 5 archivos. Máximo 15 MB por archivo y 40 MB en total. Formatos: STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG y WEBP.</p>
+          </div>
+        </div>
+
+        <button class="button button--primary button--large contact-form__submit" type="submit">
+          Enviar solicitud<svg class="button__icon" aria-hidden="true">
+            <use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-right"></use>
+          </svg>
+        </button>
+        <p class="contact-form__notice">No envíes contraseñas, datos bancarios ni información sensible en este formulario.</p>
+      </form>
+    </div>
+  </div>
+</section>

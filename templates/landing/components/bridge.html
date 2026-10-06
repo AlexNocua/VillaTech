@@ -1,0 +1,29 @@
+{% load static %}
+<section class="bridge" data-story-stage="solder" aria-labelledby="bridge-title">
+    <div class="container bridge__shell">
+        <div class="bridge__visual" aria-hidden="true">
+            <div class="bridge__node bridge__node--physical">
+                <svg><use href="{% static 'landing/icons/sprite.svg' %}#icon-cube"></use></svg>
+                <span>Objeto</span>
+            </div>
+            <div class="bridge__connection">
+                <i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="bridge__node bridge__node--digital">
+                <svg><use href="{% static 'landing/icons/sprite.svg' %}#icon-code"></use></svg>
+                <span>Sistema</span>
+            </div>
+        </div>
+
+        <div class="bridge__content">
+            <p class="eyebrow">Una visión integral</p>
+            <h2 id="bridge-title">Lo físico y lo digital pueden resolver el mismo reto.</h2>
+            <p>En VillaTech elegimos la tecnología en función del problema: una pieza, un prototipo, una interfaz o una automatización. El objetivo siempre es lograr un resultado claro, útil y sostenible.</p>
+            <div class="bridge__points">
+                <span><svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-check"></use></svg> Alcance definido contigo</span>
+                <span><svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-check"></use></svg> Decisiones técnicas explicadas</span>
+                <span><svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-check"></use></svg> Entregables listos para usar</span>
+            </div>
+        </div>
+    </div>
+</section>

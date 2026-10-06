@@ -1,0 +1,616 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07182A" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <script src="{% static 'landing/js/theme-bootstrap.js' %}"></script>
+
+    <title>
+      {% block title %}
+        VillaTech | Impresión 3D y desarrollo digital
+      {% endblock %}
+    </title>
+    <meta name="description"
+      content="{% block meta_description %}
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        VillaTech transforma ideas en piezas impresas en 3D, prototipos funcionales y soluciones digitales a la medida.
+
+
+
+
+
+
+
+
+
+
+
+
+
+      {% endblock %}" />
+
+    {% if canonical_url %}
+      <link rel="canonical" href="{{ canonical_url }}" />
+    {% endif %}
+    <meta property="og:type" content="website" />
+    <meta property="og:title"
+      content="{% block og_title %}
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        VillaTech | De la idea a una solución real
+
+
+
+
+
+
+
+
+
+
+
+
+
+      {% endblock %}" />
+    <meta property="og:description" content="Impresión 3D, diseño, prototipado y desarrollo de software a la medida." />
+    {% if social_image_url %}
+      <meta property="og:image" content="{{ social_image_url }}" />
+    {% endif %}
+
+    {% comment %}Bootstrap{% endcomment %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous" />
+    <link rel="preload" as="image" href="{% static 'landing/images/villatech-logo-256.webp' %}" type="image/webp" />
+
+    <link rel="stylesheet" href="{% static 'landing/css/tokens.css' %}" />
+    <link rel="stylesheet" href="{% static 'landing/css/globals.css' %}" />
+    <link rel="stylesheet" href="{% static 'landing/css/components/navbar.css' %}" />
+    <link rel="stylesheet" href="{% static 'landing/css/components/footer.css' %}" />
+    <link rel="stylesheet" href="{% static 'landing/css/components/cookie-consent.css' %}" />
+    {% block extra_css %}
+
+    {% endblock %}
+
+    <style>
+      /* =====================================================
+                               VILLATECH TOAST
+                               Puede moverse después a components/toast.css
+                               ===================================================== */
+      
+      .vt-toast-stack {
+        position: fixed;
+        top: 5.5rem;
+        right: 1.5rem;
+        z-index: 2300;
+      
+        display: grid;
+        gap: 0.75rem;
+      
+        width: min(24.5rem, calc(100vw - 2rem));
+        pointer-events: none;
+      }
+      
+      .toast.vt-toast {
+        --toast-accent: var(--color-primary);
+        --toast-accent-soft: color-mix(in srgb, var(--toast-accent) 14%, transparent);
+        --toast-duration: 6500ms;
+      
+        position: relative;
+        isolation: isolate;
+      
+        display: grid;
+        grid-template-columns: 2.75rem minmax(0, 1fr) 2rem;
+        align-items: start;
+        gap: 0.8rem;
+      
+        width: 100%;
+        max-width: none;
+        padding: 0.9rem;
+        overflow: hidden;
+      
+        color: var(--color-text);
+        background: linear-gradient(135deg, var(--toast-accent-soft), transparent 45%), color-mix(in srgb, var(--card-background) 96%, transparent);
+      
+        border: 1px solid var(--color-border);
+        border-radius: 1rem;
+        box-shadow: var(--shadow-card);
+      
+        opacity: 0;
+        transform: translate3d(1.5rem, 0, 0) scale(0.97);
+        transform-origin: right center;
+      
+        transition: opacity 220ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms ease, background-color 220ms ease;
+      
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      
+        pointer-events: auto;
+      }
+      
+      .toast.vt-toast.show {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      
+      .toast.vt-toast.showing {
+        opacity: 0;
+        transform: translate3d(1rem, 0, 0) scale(0.98);
+      }
+      
+      .toast.vt-toast:hover,
+      .toast.vt-toast:focus-within {
+        border-color: color-mix(in srgb, var(--toast-accent) 48%, var(--color-border));
+      }
+      
+      /* Tipos de mensajes de Django */
+      
+      .vt-toast--success {
+        --toast-accent: var(--success);
+      }
+      
+      .vt-toast--warning {
+        --toast-accent: var(--warning);
+        --toast-duration: 7500ms;
+      }
+      
+      .vt-toast--error,
+      .vt-toast--danger {
+        --toast-accent: var(--danger);
+        --toast-duration: 9000ms;
+      }
+      
+      .vt-toast--info {
+        --toast-accent: var(--info);
+      }
+      
+      .vt-toast__line {
+        position: absolute;
+        inset: 0 auto 0 0;
+      
+        width: 0.25rem;
+        border-radius: 1rem 0 0 1rem;
+        background: var(--toast-accent);
+        box-shadow: 0 0 1.25rem color-mix(in srgb, var(--toast-accent) 65%, transparent);
+      }
+      
+      .vt-toast__brand {
+        position: relative;
+      
+        display: grid;
+        place-items: center;
+      
+        width: 2.75rem;
+        height: 2.75rem;
+      
+        background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+      
+        border: 1px solid color-mix(in srgb, var(--toast-accent) 30%, var(--color-border));
+      
+        border-radius: 0.75rem;
+      }
+      
+      .vt-toast__brand::after {
+        content: '';
+        position: absolute;
+        inset: -0.25rem;
+      
+        border: 1px solid color-mix(in srgb, var(--toast-accent) 18%, transparent);
+      
+        border-radius: 0.95rem;
+        pointer-events: none;
+      }
+      
+      .vt-toast__logo {
+        width: 1.85rem;
+        height: 1.85rem;
+        object-fit: contain;
+      }
+      
+      .vt-toast__content {
+        min-width: 0;
+        padding-top: 0.05rem;
+      }
+      
+      .vt-toast__heading {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      
+        margin-bottom: 0.35rem;
+      }
+      
+      .vt-toast__title {
+        color: var(--color-text);
+        font-size: 0.85rem;
+        font-weight: 750;
+        line-height: 1.25;
+      }
+      
+      .vt-toast__type {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
+      
+        padding: 0.18rem 0.45rem;
+      
+        color: var(--toast-accent);
+        background: var(--toast-accent-soft);
+      
+        border: 1px solid color-mix(in srgb, var(--toast-accent) 25%, transparent);
+      
+        border-radius: 999px;
+      
+        font-size: 0.62rem;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+      
+      .vt-toast__type::before {
+        content: '';
+      
+        width: 0.36rem;
+        height: 0.36rem;
+      
+        flex: 0 0 auto;
+      
+        background: currentColor;
+        border-radius: 50%;
+        box-shadow: 0 0 0.55rem currentColor;
+      }
+      
+      .vt-toast__message {
+        margin: 0;
+      
+        color: var(--color-text-secondary);
+        font-size: 0.82rem;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+      
+      .vt-toast__close {
+        display: grid;
+        place-items: center;
+      
+        width: 2rem;
+        height: 2rem;
+        margin: -0.2rem -0.2rem 0 0;
+        padding: 0;
+      
+        color: var(--color-text-muted);
+        background: transparent;
+      
+        border: 1px solid transparent;
+        border-radius: 0.55rem;
+      
+        cursor: pointer;
+        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+      }
+      
+      .vt-toast__close:hover {
+        color: var(--color-text);
+        background: var(--color-surface-hover);
+        border-color: var(--color-border);
+        transform: rotate(4deg);
+      }
+      
+      .vt-toast__close:focus-visible {
+        outline: 2px solid var(--toast-accent);
+        outline-offset: 2px;
+      }
+      
+      .vt-toast__close svg {
+        width: 1rem;
+        height: 1rem;
+        pointer-events: none;
+      }
+      
+      .vt-toast__progress {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      
+        height: 0.18rem;
+      
+        background: var(--toast-accent);
+        transform: scaleX(1);
+        transform-origin: left center;
+        opacity: 0.85;
+      }
+      
+      .vt-toast.show .vt-toast__progress {
+        animation: vt-toast-progress var(--toast-duration) linear forwards;
+      }
+      
+      .vt-toast:hover .vt-toast__progress,
+      .vt-toast:focus-within .vt-toast__progress {
+        animation-play-state: paused;
+      }
+      
+      @keyframes vt-toast-progress {
+        to {
+          transform: scaleX(0);
+        }
+      }
+      
+      @media (max-width: 575.98px) {
+        .vt-toast-stack {
+          top: 4.75rem;
+          right: 1rem;
+          left: 1rem;
+          width: auto;
+        }
+      
+        .toast.vt-toast {
+          grid-template-columns: 2.5rem minmax(0, 1fr) 2rem;
+          padding: 0.8rem;
+          border-radius: 0.9rem;
+        }
+      
+        .vt-toast__brand {
+          width: 2.5rem;
+          height: 2.5rem;
+        }
+      
+        .vt-toast__logo {
+          width: 1.65rem;
+          height: 1.65rem;
+        }
+      }
+      
+      @media (prefers-reduced-motion: reduce) {
+        .toast.vt-toast {
+          transition: opacity 100ms linear;
+          transform: none;
+        }
+      
+        .vt-toast__progress {
+          display: none;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% comment %}Notificaciones globales de VillaTech. Más adelante puede moverse a: landing/components/toast.html{% endcomment %}
+
+    {% if messages %}
+      <section class="vt-toast-stack" aria-label="Notificaciones del sistema">
+        {% for message in messages %}
+          <article class="
+                        toast
+                        vt-toast
+                        {% if 'success' in message.tags %}
+              
+              
+              
+                            vt-toast--success
+
+
+
+            {% elif 'error' in message.tags or 'danger' in message.tags %}
+              
+              
+              
+                            vt-toast--error
+
+
+
+            {% elif 'warning' in message.tags %}
+              
+              
+              
+                            vt-toast--warning
+
+
+
+            {% else %}
+              
+              
+              
+                            vt-toast--info
+
+
+
+            {% endif %}
+                    "
+            role="{% if 'error' in message.tags or 'danger' in message.tags %}
+              
+              
+              alert
+
+
+            {% else %}
+              
+              
+              status
+
+
+            {% endif %}"
+            aria-live="{% if 'error' in message.tags or 'danger' in message.tags %}
+              
+              
+              assertive
+
+
+            {% else %}
+              
+              
+              polite
+
+
+            {% endif %}"
+            aria-atomic="true"
+            data-vt-toast
+            data-bs-autohide="true"
+            data-bs-delay="{% if 'error' in message.tags or 'danger' in message.tags %}
+              
+              
+              9000
+
+
+            {% elif 'warning' in message.tags %}
+              
+              
+              7500
+
+
+            {% else %}
+              
+              
+              6500
+
+
+            {% endif %}">
+            <span class="vt-toast__line" aria-hidden="true"></span>
+
+            <div class="vt-toast__brand" aria-hidden="true">
+              <img class="vt-toast__logo" src="{% static 'landing/images/villatech-logo-256.webp' %}" width="44" height="44" alt="" />
+            </div>
+
+            <div class="vt-toast__content">
+              <div class="vt-toast__heading">
+                <strong class="vt-toast__title">VillaTech</strong>
+
+                <span class="vt-toast__type">
+                  {% if 'success' in message.tags %}
+                    Operación exitosa
+                  {% elif 'error' in message.tags or 'danger' in message.tags %}
+                    Ocurrió un problema
+                  {% elif 'warning' in message.tags %}
+                    Atención
+                  {% else %}
+                    Información
+                  {% endif %}
+                </span>
+              </div>
+
+              <p class="vt-toast__message">{{ message }}</p>
+            </div>
+
+            <button class="vt-toast__close" type="button" data-bs-dismiss="toast" data-vt-toast-close aria-label="Cerrar notificación">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <path d="M6 6l12 12"></path>
+                <path d="M18 6L6 18"></path>
+              </svg>
+            </button>
+
+            <span class="vt-toast__progress" aria-hidden="true"></span>
+          </article>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
+
+    {% include 'landing/components/navbar.html' %}
+
+    <main id="contenido-principal">
+      {% block content %}
+
+      {% endblock %}
+    </main>
+
+    {% include 'landing/components/footer.html' %}
+    {% include 'landing/components/cookie-consent.html' %}
+
+    <script src="{% static 'landing/js/theme.js' %}" defer></script>
+    <script src="{% static 'landing/js/navigation.js' %}" defer></script>
+    <script src="{% static 'landing/js/cookie-consent.js' %}" defer></script>
+    <script type="module" src="{% static 'landing/js/animations.js' %}?v=4"></script>
+    <script type="module" src="{% static 'landing/js/scroll-story.js' %}?v=5"></script>
+    {% block extra_js %}
+
+    {% endblock %}
+
+    {% comment %}Bootstrap{% endcomment %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+    <script>
+      ;(() => {
+        'use strict'
+      
+        const hideFallbackToast = (toastElement) => {
+          toastElement.classList.remove('show')
+      
+          window.setTimeout(() => {
+            toastElement.remove()
+          }, 250)
+        }
+      
+        const initializeToasts = () => {
+          const toastElements = document.querySelectorAll('[data-vt-toast]')
+      
+          toastElements.forEach((toastElement) => {
+            const delay = Number.parseInt(toastElement.dataset.bsDelay || '6500', 10)
+      
+            /*
+             * Inicialización normal con Bootstrap.
+             */
+            if (window.bootstrap?.Toast) {
+              const toastInstance = window.bootstrap.Toast.getOrCreateInstance(toastElement, {
+                autohide: toastElement.dataset.bsAutohide !== 'false',
+                delay: delay
+              })
+      
+              toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove(), { once: true })
+      
+              toastInstance.show()
+              return
+            }
+      
+            /*
+             * Alternativa si Bootstrap no pudo cargarse.
+             * El usuario seguirá viendo y cerrando la notificación.
+             */
+            toastElement.classList.add('show')
+      
+            const closeButton = toastElement.querySelector('[data-vt-toast-close]')
+      
+            closeButton?.addEventListener('click', () => hideFallbackToast(toastElement), { once: true })
+      
+            window.setTimeout(() => {
+              if (toastElement.isConnected) {
+                hideFallbackToast(toastElement)
+              }
+            }, delay)
+          })
+        }
+      
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initializeToasts, { once: true })
+        } else {
+          initializeToasts()
+        }
+      })()
+    </script>
+  </body>
+</html>

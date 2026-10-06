@@ -1,0 +1,71 @@
+{% load static %}
+<section class="section services" id="servicios" data-story-stage="design" aria-labelledby="services-title">
+    <div class="container">
+        <div class="section-heading section-heading--split">
+            <div>
+                <p class="eyebrow">Lo que hacemos</p>
+                <h2 id="services-title">Tecnología aplicada a necesidades reales.</h2>
+            </div>
+            <p>Integramos diseño, fabricación y desarrollo para acompañarte desde la primera idea hasta una solución que puedas usar.</p>
+        </div>
+
+        <div class="services__grid">
+            <article class="service-card service-card--primary">
+                <div class="service-card__topline">
+                    <span class="service-card__number">01</span>
+                    <span class="icon-box">
+                        <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-printer"></use></svg>
+                    </span>
+                </div>
+                <div>
+                    <h3>Impresión 3D</h3>
+                    <p>Fabricamos piezas personalizadas con atención al detalle, al uso final y a la viabilidad de impresión.</p>
+                </div>
+                <ul class="service-card__list">
+                    <li>Prototipos y piezas funcionales</li>
+                    <li>Recordatorios y productos personalizados</li>
+                    <li>Producciones cortas bajo pedido</li>
+                </ul>
+                <a href="#contacto">Cotizar una pieza <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-up-right"></use></svg></a>
+            </article>
+
+            <article class="service-card">
+                <div class="service-card__topline">
+                    <span class="service-card__number">02</span>
+                    <span class="icon-box">
+                        <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-cube"></use></svg>
+                    </span>
+                </div>
+                <div>
+                    <h3>Diseño y prototipado</h3>
+                    <p>Convertimos referencias, medidas o conceptos en modelos listos para revisar, ajustar y producir.</p>
+                </div>
+                <ul class="service-card__list">
+                    <li>Modelado de piezas a la medida</li>
+                    <li>Adaptación para fabricación 3D</li>
+                    <li>Iteraciones antes de producir</li>
+                </ul>
+                <a href="#contacto">Desarrollar una idea <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-up-right"></use></svg></a>
+            </article>
+
+            <article class="service-card">
+                <div class="service-card__topline">
+                    <span class="service-card__number">03</span>
+                    <span class="icon-box">
+                        <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-code"></use></svg>
+                    </span>
+                </div>
+                <div>
+                    <h3>Desarrollo digital</h3>
+                    <p>Construimos herramientas web y automatizaciones que organizan procesos y facilitan el trabajo diario.</p>
+                </div>
+                <ul class="service-card__list">
+                    <li>Landing pages y sistemas web</li>
+                    <li>Automatización de procesos</li>
+                    <li>Soluciones escalables a la medida</li>
+                </ul>
+                <a href="#contacto">Hablar de tu sistema <svg aria-hidden="true"><use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-up-right"></use></svg></a>
+            </article>
+        </div>
+    </div>
+</section>
