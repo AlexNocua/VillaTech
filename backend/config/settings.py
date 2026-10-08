@@ -210,7 +210,9 @@ elif DB_ENGINE != 'sqlite':
     raise RuntimeError('DB_ENGINE debe ser sqlite o postgresql.')
 else:
     DATABASES['default']['NAME'] = os.environ.get('SQLITE_PATH', str(BASE_DIR.parent / 'db.sqlite3'))
-MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', '/data/media' if IS_RAILWAY else str(MEDIA_ROOT)))
+_volume_path = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '').strip()
+_default_media = str(Path(_volume_path) / 'media') if _volume_path else ('/data/media' if IS_RAILWAY else str(MEDIA_ROOT))
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', '').strip() or _default_media).expanduser().resolve()
 STATIC_ROOT = Path(os.environ.get('STATIC_ROOT', str(STATIC_ROOT)))
 STATIC_URL = '/static/'
 if IS_PRODUCTION:

@@ -121,7 +121,7 @@ def products(request,pk=None):
     from apps.landing.models import Product
     if pk is not None:
         instance=get_object_or_404(Product,pk=pk)
-        form=ProductForm(request.POST or None,instance=instance)
+        form=ProductForm(request.POST or None,request.FILES or None,instance=instance)
         if request.method=='POST' and form.is_valid():form.save();return redirect('management:products')
         return render(request,'management/form.html',{'form':form,'title':'Editar producto interno / publicación'})
     return render(request,'management/products.html',{'products':Product.objects.select_related('mtm_category').all()})

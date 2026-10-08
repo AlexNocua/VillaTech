@@ -57,7 +57,7 @@ class ExpenseForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name','description','mtm_category','price','stock','is_active','is_public']
+        fields = ['name','description','mtm_category','price','stock','image','image_url','is_active','is_public']
 
 class VariantForm(forms.ModelForm):
     class Meta:

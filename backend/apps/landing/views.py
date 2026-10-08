@@ -61,6 +61,8 @@ def contact_form_action(request):
     except ValidationError as error:
         messages.error(request,' '.join(error.messages))
     except Exception:
+        import logging
+        logging.getLogger(__name__).exception('Error al guardar solicitud y archivos de referencia')
         messages.error(request,'No pudimos guardar tu solicitud. Intenta nuevamente.')
     else:
         messages.success(request,'Recibimos tu solicitud. Te contactaremos para revisar tu proyecto.')

@@ -1,4 +1,5 @@
 from django.db import models
+from .validators import image_path, validate_image
 
 
 class CategoryProduct(models.Model):
@@ -35,6 +36,7 @@ class Product(models.Model):
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveBigIntegerField(default=0)
+    image = models.ImageField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
     image_url = models.URLField(max_length=500, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -42,6 +44,10 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_image_url(self):
+        return self.image.url if self.image else self.image_url
 
     @property
     def category_slug(self):

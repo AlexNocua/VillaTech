@@ -53,8 +53,8 @@
             {% endfor %}"
             data-featured="{{ product.is_featured|yesno:'1,0' }}">
             <div class="product-card__visual product-card__visual--{{ product.category_slug|default:'otros' }}">
-              {% if product.image_url %}
-                <img src="{{ product.image_url }}" alt="{{ product.name }}" width="720" height="540" loading="lazy" decoding="async" />
+              {% if product.display_image_url %}
+                <img src="{{ product.display_image_url }}" alt="{{ product.name }}" width="720" height="540" loading="lazy" decoding="async" />
               {% else %}
                 <span class="product-card__layer product-card__layer--one"></span>
                 <span class="product-card__layer product-card__layer--two"></span>
