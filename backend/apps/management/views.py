@@ -10,7 +10,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from functools import wraps
 from pathlib import Path
-from .models import Entry, DevelopmentProject, ProjectScreenshot
+from .models import Entry, DevelopmentProject, ProjectScreenshot, Payment
 from .forms import SaleForm, OrderForm, QuotationForm, ExpenseForm, ProductForm, VariantForm, CalculatorForm, DevelopmentForm
 from .pricing import calculate
 
@@ -27,8 +27,10 @@ def staff_only(view):
 @staff_only
 def dashboard(request):
     entries = Entry.objects.all()
-    totals = {kind:entries.filter(kind=kind).aggregate(total=Sum('amount'))['total'] or 0 for kind in ['sale','expense']}
-    return render(request,'management/dashboard.html',{'entries':entries[:50],'sales':totals['sale'],'expenses':totals['expense'],'balance':totals['sale']-totals['expense'],'quotes':entries.filter(kind='quote').count(),'pending':entries.filter(kind='order').exclude(status__in=['delivered','cancelled','sold']).count(),'grams':entries.filter(kind__in=['sale','order']).exclude(status='cancelled').aggregate(total=Sum('filament_g'))['total'] or 0})
+    commercial = entries.filter(kind__in=['sale','order']).exclude(status='cancelled')
+    totals = {'sale': commercial.aggregate(total=Sum('amount'))['total'] or 0, 'expense': entries.filter(kind='expense').aggregate(total=Sum('amount'))['total'] or 0}
+    collected = commercial.aggregate(total=Sum('paid_amount'))['total'] or 0
+    return render(request,'management/dashboard.html',{'entries':entries[:50],'collected':collected,'receivable':totals['sale']-collected,'cash_balance':collected-totals['expense'],'sales':totals['sale'],'expenses':totals['expense'],'balance':totals['sale']-totals['expense'],'quotes':entries.filter(kind='quote').count(),'pending':entries.filter(kind='order').exclude(status__in=['delivered','cancelled','sold']).count(),'grams':entries.filter(kind__in=['sale','order']).exclude(status='cancelled').aggregate(total=Sum('filament_g'))['total'] or 0})
 
 from django.db import transaction
 from .forms import QuoteFormSet, CategoryForm, PrinterForm
@@ -47,6 +49,10 @@ def entry_form(request,kind,pk=None):
     if request.method=='POST':
         valid=form.is_valid()
         if items is not None:valid=items.is_valid() and valid
+        if valid and items is not None:
+            active = [f.cleaned_data for f in items.forms if f.cleaned_data and not f.cleaned_data.get('DELETE')]
+            if active and sum(d.get('quantity',0)*d.get('unit_price',0) for d in active) < instance.paid_amount:
+                form.add_error(None,'El total de productos no puede ser menor que los abonos registrados.'); valid=False
         if valid:
             with transaction.atomic():
                 entry=form.save(commit=False);entry.kind=kind
@@ -61,14 +67,18 @@ def entry_form(request,kind,pk=None):
                             with item.variant.image.open('rb') as original:
                                 item.image.save('referencia'+Path(item.variant.image.name).suffix,ContentFile(original.read()),save=True)
                     if entry.items.exists():
-                        entry.amount=sum((item.total for item in entry.items.all()),0);entry.save(update_fields=['amount','updated_at'])
+                        entry.amount=sum((item.total for item in entry.items.all()),0)
+                        if entry.amount < entry.paid_amount:
+                            from django.core.exceptions import ValidationError
+                            raise ValidationError('El total de productos no puede ser menor que los abonos registrados.')
+                        entry.save(update_fields=['amount','updated_at'])
             if kind in ('order','quote'):
                 from django.core.files.base import ContentFile
                 old_pdf=entry.quotation_pdf.name
                 entry.quotation_pdf.save(f'cotizacion-{entry.pk}.pdf',ContentFile(build_quote(entry)),save=True)
                 if old_pdf and old_pdf!=entry.quotation_pdf.name:entry.quotation_pdf.storage.delete(old_pdf)
             messages.success(request,'Cotización guardada y PDF generado.' if kind in ('order','quote') else 'Venta registrada como vendida.' if kind=='sale' else 'Gasto registrado.')
-            return redirect('management:quote_detail',pk=entry.pk) if kind in ('order','quote') else redirect('management:dashboard')
+            return redirect('management:quote_detail',pk=entry.pk) if kind in ('order','quote','sale') else redirect('management:dashboard')
     profile=PrinterProfile.objects.filter(name='Creality K1C').first() or PrinterProfile.objects.first()
     cost_initial={'energy_mode':'rated','printer':profile.pk,'printer_price':profile.purchase_price,'useful_hours':profile.useful_hours,'maintenance_hour':profile.maintenance_hour} if profile else {}
     return render(request,'management/form.html',{'form':form,'items':items,'kind':kind,'title':dict(Entry.KIND)[kind],'cost_form':CalculatorForm(initial=cost_initial) if items is not None else None,'profiles_data':list(PrinterProfile.objects.values('id','rated_watts','average_watts','purchase_price','useful_hours','maintenance_hour'))})
@@ -124,7 +134,7 @@ def products(request,pk=None):
         form=ProductForm(request.POST or None,request.FILES or None,instance=instance)
         if request.method=='POST' and form.is_valid():form.save();return redirect('management:products')
         return render(request,'management/form.html',{'form':form,'title':'Editar producto interno / publicación'})
-    return render(request,'management/products.html',{'products':Product.objects.select_related('mtm_category').all()})
+    return render(request,'management/products.html',{'products':Product.objects.select_related('mtm_category').all(),'stock_movements':__import__('apps.management.models',fromlist=['StockMovement']).StockMovement.objects.select_related('product','created_by')[:50]})
 
 @staff_only
 def printers(request,pk=None):
@@ -220,9 +230,11 @@ def entry_list(request, section='orders'):
     if section == 'quotes':
         entries = entries.filter(kind='quote')
         statuses = [choice for choice in Entry.STATUS if choice[0] in ('draft','quoted','cancelled')]
+    elif section == 'sales':
+        entries = entries.filter(kind__in=['order','sale']).exclude(status='cancelled')
+        statuses = Entry.STATUS
     else:
-        # Incoming web drafts remain visible until priced and confirmed.
-        entries = entries.filter(Q(kind='order') | Q(kind='quote',source='web'))
+        entries = entries.filter(kind='order')
         statuses = [choice for choice in Entry.STATUS if choice[0] != 'sold']
     status = request.GET.get('status','')
     source = request.GET.get('source','')
@@ -234,7 +246,7 @@ def entry_list(request, section='orders'):
     page = Paginator(entries,25).get_page(request.GET.get('page'))
     params = request.GET.copy(); params.pop('page',None)
     return render(request,'management/entries.html',{'page':page,'section':section,'statuses':statuses,
-        'status':status,'source':source,'query':query,'filters_query':params.urlencode()})
+        'status':status,'products':__import__('apps.landing.models',fromlist=['Product']).Product.objects.filter(is_active=True),'source':source,'query':query,'filters_query':params.urlencode()})
 
 @staff_only
 def contact_attachment(request,pk):
@@ -267,3 +279,64 @@ def legacy_contact_file(request,pk):
     response['Cache-Control'] = 'private, no-store'
     response['X-Content-Type-Options'] = 'nosniff'
     return response
+
+@staff_only
+@require_POST
+def record_payment(request,pk):
+    from decimal import Decimal, InvalidOperation
+    with transaction.atomic():
+        entry=get_object_or_404(Entry.objects.select_for_update(),pk=pk,kind__in=['order','sale'])
+        try:
+            amount=Decimal(request.POST.get('payment',''))
+            if not amount.is_finite() or amount <= 0 or amount != amount.quantize(Decimal('0.01')) or amount > entry.outstanding or entry.status == 'cancelled':
+                raise ValueError
+        except (InvalidOperation,ValueError):
+            messages.error(request,'Introduce un abono positivo, con máximo dos decimales y sin superar el saldo pendiente.')
+        else:
+            Payment.objects.create(entry=entry,amount=amount,created_by=request.user)
+            entry.paid_amount += amount
+            entry.save(update_fields=['paid_amount','updated_at'])
+            messages.success(request,'Abono registrado. El total vendido no cambia.')
+    return redirect('management:quote_detail',pk=pk)
+
+@staff_only
+@require_POST
+def enable_product(request,pk):
+    from apps.landing.models import Product
+    with transaction.atomic():
+        entry=get_object_or_404(Entry.objects.select_for_update(),pk=pk,kind__in=['order','sale','quote'])
+        if not entry.reference_product_id:
+            selected=request.POST.get('product','')
+            if selected:
+                entry.reference_product=get_object_or_404(Product,pk=selected,is_active=True)
+                entry.product_category=entry.reference_product.mtm_category
+            elif entry.product_category_id:
+                entry.reference_product=Product.objects.create(name=entry.title,description=entry.description,
+                    mtm_category=entry.product_category,price=entry.amount,stock=0,is_public=False)
+            else:
+                messages.error(request,'Asigna una categoría al registro o selecciona un producto existente.')
+                return redirect('management:edit',kind=entry.kind,pk=pk)
+            entry.save(update_fields=['reference_product','product_category','updated_at'])
+        messages.success(request,'Producto vinculado al registro. Revisa su precio unitario y existencias en Inventario.')
+    return redirect('management:product_edit',pk=entry.reference_product_id)
+
+@staff_only
+@require_POST
+def adjust_stock(request,pk):
+    from apps.landing.models import Product
+    from .models import StockMovement
+    with transaction.atomic():
+        product=get_object_or_404(Product.objects.select_for_update(),pk=pk)
+        try:
+            quantity=int(request.POST.get('quantity',''))
+            reason=request.POST.get('reason','').strip()
+            if not quantity or abs(quantity)>1000000 or product.stock+quantity<0 or not reason or len(reason)>150:
+                raise ValueError
+        except (ValueError,TypeError):
+            messages.error(request,'Introduce unidades enteras, un motivo y un ajuste que no deje existencias negativas.')
+        else:
+            product.stock+=quantity
+            product.save(update_fields=['stock','updated_at'])
+            StockMovement.objects.create(product=product,quantity=quantity,reason=reason,created_by=request.user)
+            messages.success(request,'Existencias ajustadas y movimiento registrado.')
+    return redirect('management:products')

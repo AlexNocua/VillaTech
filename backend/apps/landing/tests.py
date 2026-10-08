@@ -74,7 +74,7 @@ class ContactWorkflowTests(TestCase):
         self.submit(); web = Entry.objects.get()
         manual = Entry.objects.create(kind='order',title='Manual',amount=100,created_by=self.staff,status='ready')
         self.client.force_login(self.staff)
-        response = self.client.get('/gestion/pedidos/?source=web&status=draft')
+        response = self.client.get('/gestion/cotizaciones/?source=web&status=draft')
         self.assertEqual(list(response.context['page']),[web])
         response = self.client.get('/gestion/pedidos/?source=manual&status=ready')
         self.assertEqual(list(response.context['page']),[manual])
@@ -136,3 +136,15 @@ class HistoricalImportTests(TestCase):
         migration.import_requests(apps,editor)
         self.assertEqual(Entry.objects.filter(contact=contact).count(),1)
         self.assertEqual(ContactEmail.objects.count(),0)
+
+class GmailPasswordTests(TestCase):
+    @override_settings(EMAIL_HOST='smtp.gmail.com',EMAIL_HOST_PASSWORD='abcd efgh ijkl mnop',EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',DEFAULT_FROM_EMAIL='team@example.com')
+    def test_application_password_normalized_and_transport_failure_saved(self):
+        from .notifications import dispatch_contact_emails
+        from django.core.mail import get_connection
+        contact=Contact.objects.create(client_name='Cliente',telephone=3204504722,email='client@example.com',service='otro',message='Prueba',file='')
+        ContactEmail.objects.create(contact=contact,audience='customer',recipient=contact.email,subject='Prueba',text='Texto',html='<p>Texto</p>')
+        connection=get_connection()
+        with patch('apps.landing.notifications.get_connection',return_value=connection), patch.object(connection,'send_messages',return_value=1):
+            self.assertEqual(dispatch_contact_emails(contact.pk),1)
+        self.assertEqual(connection.password,'abcdefghijklmnop')

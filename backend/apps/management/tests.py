@@ -208,3 +208,48 @@ class ManagementTests(TestCase):
         data={'items-TOTAL_FORMS':'1','items-INITIAL_FORMS':'0','items-MIN_NUM_FORMS':'0','items-MAX_NUM_FORMS':'30','items-0-name':'Figura','items-0-quantity':'100000','items-0-unit_price':'9999999999.99'}
         formset=QuoteFormSet(data,instance=entry,prefix='items')
         self.assertFalse(formset.is_valid());self.assertIn('máximo',str(formset.non_form_errors()))
+
+class CommercialBalanceTests(TestCase):
+    def setUp(self):
+        self.staff=get_user_model().objects.create_user('balance-staff',is_staff=True)
+        self.client.force_login(self.staff)
+    def test_confirmed_orders_count_without_payment_and_transition_does_not_duplicate(self):
+        order=Entry.objects.create(kind='order',title='Pendiente',amount=100,status='printing')
+        Entry.objects.create(kind='quote',title='Cotización',amount=500,status='quoted')
+        Entry.objects.create(kind='order',title='Cancelado',amount=700,status='cancelled')
+        response=self.client.get('/gestion/')
+        self.assertEqual(response.context['sales'],100)
+        self.assertEqual(response.context['collected'],0)
+        self.assertEqual(response.context['receivable'],100)
+        self.client.post(f'/gestion/registro/{order.pk}/abono/',{'payment':'30'})
+        self.client.post(f'/gestion/registro/{order.pk}/convertir/sale/')
+        response=self.client.get('/gestion/')
+        self.assertEqual(response.context['sales'],100)
+        self.assertEqual(response.context['collected'],30)
+        self.assertEqual(response.context['receivable'],70)
+        self.client.post(f'/gestion/registro/{order.pk}/abono/',{'payment':'71'})
+        self.client.post(f'/gestion/registro/{order.pk}/abono/',{'payment':'NaN'})
+        order.refresh_from_db(); self.assertEqual(order.paid_amount,30)
+        self.assertEqual(order.payments.count(),1)
+    def test_product_enable_is_idempotent_and_internal(self):
+        category=CategoryProduct.objects.create(category_name='Figuras')
+        order=Entry.objects.create(kind='order',title='Figura',amount=100,product_category=category)
+        url=f'/gestion/registro/{order.pk}/producto/'
+        self.client.post(url); self.client.post(url)
+        order.refresh_from_db()
+        self.assertEqual(Product.objects.count(),1)
+        self.assertFalse(order.reference_product.is_public)
+        self.assertEqual(order.reference_product.stock,0)
+    def test_sales_and_stock_screens(self):
+        for url in ['/gestion/ventas/','/gestion/productos/','/gestion/cotizaciones/','/gestion/pedidos/']:
+            self.assertEqual(self.client.get(url).status_code,200)
+    def test_stock_movements_record_actor_and_reject_negative_stock(self):
+        category=CategoryProduct.objects.create(category_name='Llaveros')
+        product=Product.objects.create(name='Llavero',price=5000,mtm_category=category,stock=2)
+        url=f'/gestion/productos/{product.pk}/existencias/'
+        self.client.post(url,{'quantity':'3','reason':'Compra'})
+        self.client.post(url,{'quantity':'-2','reason':'Entrega'})
+        self.client.post(url,{'quantity':'-4','reason':'Salida excesiva'})
+        product.refresh_from_db(); self.assertEqual(product.stock,3)
+        self.assertEqual(product.stock_movements.count(),2)
+        self.assertEqual(product.stock_movements.first().created_by,self.staff)

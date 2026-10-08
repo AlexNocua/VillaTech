@@ -1,7 +1,7 @@
 {% extends 'management/base.html' %}{% load management_numbers %}
 {% block content %}
 <p class="eyebrow">VILLATECH / {{ title|upper }}</p><h1>{{ title }}</h1>
-{% if kind == 'sale' %}<p class="muted">Se registra automáticamente como Vendido, con la fecha y hora de venta. El precio es el total cobrado.</p>{% elif kind == 'quote' %}<p class="muted">Prepara el documento antes de confirmar un pedido. Una cotización no se cuenta como venta.</p>{% elif kind == 'expense' %}<p class="muted">Registra el valor pagado y su motivo. La fecha y hora se guardan automáticamente.</p>{% endif %}
+{% if kind == 'sale' %}<p class="muted">Se registra automáticamente como Vendido, con la fecha y hora de venta. El precio es el total vendido; registra los abonos por separado desde Ventas y saldos.</p>{% elif kind == 'quote' %}<p class="muted">Prepara el documento antes de confirmar un pedido. Una cotización no se cuenta como venta.</p>{% elif kind == 'expense' %}<p class="muted">Registra el valor pagado y su motivo. La fecha y hora se guardan automáticamente.</p>{% endif %}
 {% if cost_form %}
 <details class="panel optional-cost"><summary>Calcular un precio orientativo · opcional</summary>
 <p class="muted">Calcula el costo de una unidad. El resultado no cambia tu cotización hasta que pulses Aplicar. Puedes modificar el precio después.</p>

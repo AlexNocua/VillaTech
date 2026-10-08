@@ -1,0 +1,56 @@
+VILLATECH — CORREOS, PEDIDOS, SALDOS E INVENTARIO
+
+ANTES DE ACTUALIZAR
+Haz una copia de la base de datos y de media. Conserva las variables actuales del servidor. Esta entrega no cambia el diseño de la landing ni sus componentes.
+
+INSTALACIÓN
+Desde la carpeta villatechdev y con tu entorno virtual activado:
+python -m pip install -r backend/requirements-production.txt
+python backend/manage.py migrate
+python backend/manage.py check
+python backend/manage.py test apps.management apps.landing
+
+Si estás dentro de backend, usa python manage.py en lugar de python backend/manage.py.
+El ZIP no incluye el entorno virtual ni el historial Git; conserva los de tu instalación o crea un entorno con python -m venv .venv.
+No reemplaces tu base de datos de producción con la base incluida en el proyecto. Aplica las migraciones 0010 y 0011 sobre tu base actual.
+
+CORREOS GMAIL
+Causa encontrada: el código escogía Resend automáticamente en Railway. Ahora el valor por defecto es SMTP, conservando los mismos nombres de variables. Se eliminan espacios de la contraseña de aplicación al abrir la conexión Gmail.
+Si Railway ya tiene EMAIL_PROVIDER=resend, cambia únicamente esa variable a smtp. Si EMAIL_BACKEND está definido explícitamente como Resend, cámbialo a django.core.mail.backends.smtp.EmailBackend o elimina esa sobrescritura.
+EMAIL_HOST_USER: tu cuenta Gmail.
+EMAIL_HOST_PASSWORD: contraseña de aplicación de Google, no la contraseña habitual. No envíes esta contraseña por chat.
+CONTACT_NOTIFICATION_EMAIL: destinatario de VillaTech (si no existe, se usa EMAIL_HOST_USER).
+El archivo .env.railway.example se actualizó únicamente en el bloque de correos.
+Las solicitudes y los correos fallidos quedan guardados; puedes reintentar desde el detalle de la cotización. Los correos ya aceptados no vuelven a enviarse.
+También puedes ejecutar:
+python backend/manage.py retry_contact_emails
+La prueba usa transporte simulado: no se envió correo real ni se verificó la conexión SMTP de tu servidor. Si falla en producción, revisa el estado de cada correo y los registros del servidor. Una restricción de salida SMTP o una credencial incorrecta no puede resolverse solo con el código.
+
+REGLAS COMERCIALES
+Cotización: propuesta o solicitud web, sin sumar al total vendido.
+Pedido: compromiso confirmado; suma al vendido inmediatamente, aunque esté pendiente, en impresión, listo o entregado.
+Venta: suma al vendido. Convertir un pedido en venta conserva el mismo registro y no duplica el importe.
+Cancelado: excluido del vendido. No se permite cancelar un pedido con abonos desde el formulario sin conciliar previamente sus pagos.
+Cobrado: suma de abonos registrados.
+Saldo por cobrar: total vendido menos abonos.
+Vendido menos gastos: diferencia comercial, no utilidad contable.
+Cobrado menos gastos: diferencia entre cobros registrados y gastos, no saldo bancario real.
+Los registros históricos empiezan con cero abonado porque el proyecto anterior no guardaba pagos. Revisa sus pagos reales y registra los abonos para obtener saldos correctos. No se supone que una venta histórica esté pagada.
+
+FLUJO
+1. Las solicitudes del formulario llegan a Cotizaciones y conservan adjuntos y notificaciones.
+2. Completa el importe o las líneas y confirma como pedido.
+3. Sigue el estado de producción en Pedidos.
+4. Revisa todos los pedidos y ventas en Ventas y saldos.
+5. Abre Revisar / abonar para registrar pagos parciales o el pago total. Finalizar como venta no implica haber cobrado.
+6. Desde una lista selecciona un producto existente o pulsa Vincular / habilitar producto para crear uno interno con la categoría del registro. Revisa su precio unitario: el precio inicial usa el total del registro, que puede incluir varias unidades.
+
+INVENTARIO
+Los productos internos no se publican automáticamente. Publicar en la página sigue siendo una decisión explícita al editar el producto.
+En Inventario se muestran precio, existencias, actividad y visibilidad.
+Usa una cantidad positiva para entrada, negativa para salida, indicando el motivo. Se guarda producto, unidades, usuario y fecha. No se permiten existencias negativas.
+Los pedidos de fabricación personalizada no descuentan stock automáticamente: al entregar piezas de inventario registra la salida correspondiente. Las variantes son referencias de tamaño/precio y no tienen existencias independientes.
+El stock inicial existente se conserva; el historial de movimientos comienza con esta actualización.
+
+VALIDACIÓN
+Se agregaron pruebas de pedidos sin pago, conversión sin duplicación, abonos parciales, rechazo de sobrepagos, creación interna idempotente, entradas/salidas de inventario y normalización de contraseña Gmail.

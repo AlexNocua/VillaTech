@@ -20,6 +20,10 @@ class EntryForm(forms.ModelForm):
         if product and not category:data['product_category']=product.mtm_category
         if product and category and product.mtm_category_id != category.pk:
             self.add_error('product_category','La categoría debe coincidir con el producto de referencia.')
+        if self.instance.pk and data.get('amount') is not None and data['amount'] < self.instance.paid_amount:
+            self.add_error('amount','El total no puede ser menor que los abonos registrados.')
+        if data.get('status') == 'cancelled' and self.instance.paid_amount:
+            self.add_error('status','Este pedido tiene abonos. Revisa y concilia los pagos antes de cancelar.')
         return data
     class Meta:
         model=Entry
@@ -57,7 +61,7 @@ class ExpenseForm(forms.ModelForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name','description','mtm_category','price','stock','image','image_url','is_active','is_public']
+        fields = ['name','description','mtm_category','price','image','image_url','is_active','is_public']
 
 class VariantForm(forms.ModelForm):
     class Meta:

@@ -15,6 +15,7 @@ class Entry(models.Model):
     print_hours = models.DecimalField('Horas de impresión',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     sold_at = models.DateTimeField('Fecha de venta',null=True,blank=True,editable=False)
     customer = models.CharField('Cliente', max_length=150, blank=True)
+    paid_amount = models.DecimalField('Total abonado COP', max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     amount = models.DecimalField('Valor total COP', max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
     category = models.CharField('Categoría de gasto', max_length=15, choices=CATEGORY, default='other')
     status = models.CharField('Estado del pedido', max_length=15, choices=STATUS, default='pending')
@@ -38,6 +39,9 @@ class Entry(models.Model):
             self.status='sold'
             if not self.sold_at:self.sold_at=timezone.now()
         super().save(*args,**kwargs)
+    @property
+    def outstanding(self):
+        return max(self.amount - self.paid_amount, 0) if self.kind in ('order','sale') and self.status != 'cancelled' else 0
     def __str__(self): return self.title
 
 
@@ -84,3 +88,20 @@ class ProjectScreenshot(models.Model):
     project=models.ForeignKey(DevelopmentProject,on_delete=models.CASCADE,related_name='screenshots')
     image=models.ImageField('Captura del aplicativo',upload_to=private_path,validators=[validate_image])
     created_at=models.DateTimeField(auto_now_add=True)
+
+class Payment(models.Model):
+    entry=models.ForeignKey(Entry,on_delete=models.PROTECT,related_name='payments')
+    amount=models.DecimalField('Abono COP',max_digits=14,decimal_places=2,validators=[MinValueValidator(0.01)])
+    created_at=models.DateTimeField(auto_now_add=True)
+    created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
+    class Meta:
+        ordering=['-created_at','-pk']
+
+class StockMovement(models.Model):
+    product=models.ForeignKey('landing.Product',on_delete=models.PROTECT,related_name='stock_movements')
+    quantity=models.BigIntegerField('Cambio de unidades')
+    reason=models.CharField('Motivo',max_length=150)
+    created_at=models.DateTimeField(auto_now_add=True)
+    created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
+    class Meta:
+        ordering=['-created_at','-pk']

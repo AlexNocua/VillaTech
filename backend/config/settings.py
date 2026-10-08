@@ -252,5 +252,5 @@ if IS_RAILWAY:
 CONTACT_NOTIFICATION_EMAIL = os.environ.get('CONTACT_NOTIFICATION_EMAIL', EMAIL_HOST_USER)
 PUBLIC_SITE_URL = os.environ.get('PUBLIC_SITE_URL', 'https://' + os.environ['RAILWAY_PUBLIC_DOMAIN'] if os.environ.get('RAILWAY_PUBLIC_DOMAIN') else 'http://localhost:8000')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
-EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'resend' if IS_RAILWAY else 'smtp').lower()
+EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'smtp').lower()
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'apps.landing.email_backend.ResendEmailBackend' if EMAIL_PROVIDER == 'resend' else 'django.core.mail.backends.smtp.EmailBackend')

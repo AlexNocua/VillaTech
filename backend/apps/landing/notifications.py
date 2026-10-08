@@ -1,7 +1,7 @@
 """Persisted messages: mail failures never discard the customer's request."""
 import logging
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.validators import validate_email
 from django.db import transaction
 from django.template.loader import render_to_string
@@ -40,8 +40,11 @@ def dispatch_contact_emails(contact_id=None):
             message.attempts += 1
             try:
                 validate_email(message.recipient)
+                connection = get_connection()
+                if settings.EMAIL_HOST == 'smtp.gmail.com' and hasattr(connection, 'password'):
+                    connection.password = ''.join((connection.password or '').split())
                 mail = EmailMultiAlternatives(message.subject,message.text,settings.DEFAULT_FROM_EMAIL,
-                    [message.recipient], reply_to=[message.reply_to] if message.reply_to else [],
+                    [message.recipient], connection=connection, reply_to=[message.reply_to] if message.reply_to else [],
                     headers={'Idempotency-Key': f'villatech-contact-{message.contact_id}-{message.audience}'})
                 mail.attach_alternative(message.html,'text/html')
                 if mail.send(fail_silently=False) != 1:
