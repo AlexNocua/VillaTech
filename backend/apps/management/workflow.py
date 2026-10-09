@@ -50,7 +50,7 @@ def queue_order_email(entry, event):
     version = entry.updated_at.isoformat() if event != 'approved' else 'first'
     key = f'order:{entry.pk}:{event}:{version}'
     titles = {'approved':'Pedido confirmado', 'updated':'Actualización de tu pedido',
-              'delivered':'Pedido entregado', 'cancelled':'Pedido cancelado'}
+              'printing':'Tu pedido está en elaboración', 'ready':'Tu pedido está terminado', 'delivered':'Pedido entregado', 'cancelled':'Pedido cancelado'}
     context = {'entry':entry, 'heading':titles[event], 'event':event}
     return OperationalEmail.objects.get_or_create(event_key=key, defaults={
         'entry':entry, 'recipient':entry.customer_email,
@@ -74,22 +74,31 @@ def schedule_dispatch(message):
         transaction.on_commit(lambda pk=message.pk: safely_dispatch(pk))
 
 def dispatch_emails(pk=None):
-    pending = OperationalEmail.objects.exclude(status='sent')
+    pending = OperationalEmail.objects.filter(status__in=['pending','failed'])
     if pk is not None:
         pending = pending.filter(pk=pk)
     sent = 0
     for message_pk in list(pending.order_by('pk').values_list('pk',flat=True)):
         with transaction.atomic():
             message = OperationalEmail.objects.select_for_update().get(pk=message_pk)
-            if message.status == 'sent':
+            if message.status not in ('pending','failed'):
                 continue
             if not message.recipient and message.event_key.startswith('digest:'):
                 message.recipient = settings.CONTACT_NOTIFICATION_EMAIL
+            if message.event_key.startswith('quote:'):
+                entry=message.entry
+                if not entry or entry.kind!='quote' or entry.status!='sent' or str(entry.approval_nonce)!=message.event_key.rsplit(':',1)[-1] or not entry.quote_expires_at or entry.quote_expires_at<=timezone.now():
+                    message.status='skipped';message.last_error='Cotización vencida, sustituida o aprobada.'
+                    message.save(update_fields=['status','last_error'])
+                    continue
             message.attempts += 1
             try:
                 validate_email(message.recipient)
                 mail = branded_mail(message.subject,message.text,message.recipient,message.html,
                     reply_to=settings.CONTACT_NOTIFICATION_EMAIL, key='villatech-'+message.event_key)
+                if message.attachment:
+                    with message.attachment.open('rb') as pdf:
+                        mail.attach('VillaTech-cotizacion.pdf',pdf.read(),'application/pdf')
                 if mail.send(fail_silently=False) != 1:
                     raise RuntimeError('El proveedor no aceptó el correo')
             except Exception as error:
@@ -123,7 +132,7 @@ def queue_daily_digest(today=None):
         'upcoming':orders.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=3)).count(),
         'undated':orders.filter(estimated_delivery_date__isnull=True).count(),
         'urgent':list(urgent[:100]),'truncated':urgent.count()>100,
-        'management_url':settings.PUBLIC_SITE_URL.rstrip('/')+reverse('management:orders')}
+        'management_url':settings.PUBLIC_SITE_URL.rstrip('/')+reverse('management:workflow')+'?stage=orders'}
     return OperationalEmail.objects.get_or_create(event_key=f'digest:{today.isoformat()}',defaults={
         'recipient':settings.CONTACT_NOTIFICATION_EMAIL,
         'subject':f'VillaTech · {context["pending"]} pedidos pendientes · {today:%d/%m/%Y}',

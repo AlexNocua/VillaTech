@@ -1,0 +1,11 @@
+VillaTech · Cotización VT-{{ entry.pk }}
+Hola {{ entry.customer|default:'cliente' }}
+Trabajo: {{ entry.title }}
+{{ entry.description }}
+{% for item in entry.items.all %}{{ item.name }} · {{ item.quantity }} unidades × {{ item.unit_price }} COP = {{ item.total }} COP
+{% empty %}{{ entry.quantity }} unidades × {{ entry.unit_price }} COP
+{% endfor %}Total: {{ entry.amount }} COP
+Válida hasta {{ entry.quote_expires_at|date:'d/m/Y H:i' }} hora de Colombia (48 horas).
+Revisa y confirma aquí: {{ approval_url }}
+También puedes responder a este correo; VillaTech registrará la confirmación recibida.
+La aprobación crea el pedido, pero no lo marca como pagado.

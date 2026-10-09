@@ -42,16 +42,18 @@ def build_quote(order):
     header=Table([[CircleLogo(str(logo),2.8*cm),Paragraph('VillaTech<br/><font size=11>Donde tus ideas toman forma</font>',styles['VTTitle'])]],colWidths=[3.4*cm,13.4*cm])
     header.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
     flow=[header,Spacer(1,16),text(f'COTIZACIÓN VT-{order.pk:06d}','VTTitle'),text(f'Cliente: {order.customer or "Por confirmar"}\nProyecto: {order.title}\nFecha: {timezone.localtime(order.created_at):%d/%m/%Y %H:%M} · Colombia')]
+    if order.quote_expires_at:flow.append(text(f'Válida hasta: {timezone.localtime(order.quote_expires_at):%d/%m/%Y %H:%M} · Colombia','VTMuted'))
     if order.description:flow.append(text(order.description))
     items=list(order.items.all())
     for index,item in enumerate(items,1):
         detail=[text(f'{index:02d} · {item.name}','Heading2'),text(f'Medidas estimadas: {co_number(item.length_cm)} × {co_number(item.width_cm)} × {co_number(item.height_cm)} cm (largo × ancho × alto).\nCantidad: {item.quantity} · Unitario: $ {co_number(item.unit_price)} COP · Subtotal: $ {co_number(item.total)} COP')]
+        if item.description:detail.append(text(item.description))
         primary=item.image or (item.variant.image if item.variant_id and item.variant.image else None)
         pictures=Table([[text('REFERENCIA DEL PRODUCTO','VTMuted'),text('COMPARACIÓN / ESCALA','VTMuted')],[photo(primary),photo(item.comparison_image)]],colWidths=[8.4*cm,8.4*cm])
         pictures.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#F7F9F8')),('BOX',(0,0),(-1,-1),.5,colors.HexColor('#E4E9E6')),('LEFTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10)]))
         detail.extend([pictures,Spacer(1,18)]);flow.append(KeepTogether(detail))
     if not items:
-        flow.extend([text('Proyecto personalizado. Medidas por confirmar.'),photo(order.image),Spacer(1,18)])
+        flow.extend([text(f'Cantidad: {order.quantity} unidades · Unitario: $ {co_number(order.unit_price)} COP'),photo(order.image),Spacer(1,18)])
     total=sum((item.total for item in items),0) if items else order.amount
     summary=Table([[text('TOTAL ESTIMADO COP','VTBody'),text(f'$ {co_number(total)}','VTTotal')]],colWidths=[9*cm,7.8*cm]);summary.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#EAF8CC')),('VALIGN',(0,0),(-1,-1),'MIDDLE'),('TOPPADDING',(0,0),(-1,-1),12),('BOTTOMPADDING',(0,0),(-1,-1),12)]))
     flow.extend([summary,Spacer(1,18),text('Cotización orientativa, sujeta a validación de geometría, material, color y acabado. No incluye envío ni impuestos adicionales salvo acuerdo expreso. No es factura ni comprobante de pago.','VTMuted')])

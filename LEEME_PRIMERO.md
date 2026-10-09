@@ -1,3 +1,7 @@
+## Gestión actualizada
+
+Para esta versión lee primero **LEEME_FLUJO_UNIFICADO_V7.md**. Reemplaza el flujo separado descrito en guías anteriores y explica la aprobación y el vencimiento de cotizaciones.
+
 # VillaTech listo para commit y push
 
 El código detecta Railway automáticamente: producción, dominio público, CSRF, PostgreSQL, volumen /data/media, cabeceras HTTPS, WhiteNoise, puerto y arranque. railway.json ejecuta migraciones y chequeo de salud. No tienes que editar settings.py ni el comando de inicio.

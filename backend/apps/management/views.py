@@ -30,6 +30,8 @@ def staff_only(view):
 
 @staff_only
 def dashboard(request):
+    from .quotations import expire_quotes
+    expire_quotes()
     entries = Entry.objects.all()
     commercial = entries.filter(kind__in=['sale','order']).exclude(status='cancelled')
     totals = {'sale': commercial.aggregate(total=Sum('amount'))['total'] or 0, 'expense': entries.filter(kind='expense').aggregate(total=Sum('amount'))['total'] or 0}
@@ -42,7 +44,7 @@ def dashboard(request):
         'due_today':active.filter(estimated_delivery_date=today).count(),
         'upcoming':active.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=3)).count(),
         'undated':active.filter(estimated_delivery_date__isnull=True).count(),
-        'failed_emails':__import__('apps.management.models',fromlist=['OperationalEmail']).OperationalEmail.objects.exclude(status='sent').count(),
+        'failed_emails':__import__('apps.management.models',fromlist=['OperationalEmail']).OperationalEmail.objects.filter(status__in=['pending','failed']).count(),
         'collected':collected,'receivable':totals['sale']-collected,'cash_balance':collected-totals['expense'],'sales':totals['sale'],'expenses':totals['expense'],'balance':totals['sale']-totals['expense'],'quotes':entries.filter(kind='quote').count(),'pending':active.count(),'grams':commercial.aggregate(total=Sum('filament_g'))['total'] or 0})
 
 from django.db import transaction
@@ -55,6 +57,9 @@ from django.http import HttpResponse
 def entry_form(request,kind,pk=None):
     if kind not in dict(Entry.KIND): raise PermissionDenied
     instance = get_object_or_404(Entry,pk=pk,kind=kind) if pk else Entry(kind=kind,created_by=request.user)
+    if kind in ('quote','order') and pk and instance.status in ('sent','expired'):
+        from .commerce import edit
+        return edit(request,pk)
     old_status, old_date = instance.status, instance.estimated_delivery_date
     form_class={"sale":SaleForm,"order":OrderForm,"quote":QuotationForm,"expense":ExpenseForm}[kind]
     form=form_class(request.POST or None,request.FILES or None,instance=instance)
@@ -82,7 +87,9 @@ def entry_form(request,kind,pk=None):
                         return render(request,'management/form.html',{'form':form,'items':items,'kind':kind,'title':dict(Entry.KIND)[kind]})
                 if kind == "quote": entry.status = "quoted"
                 if not pk:entry.created_by=request.user
-                entry.amount=entry.amount or 0;entry.save()
+                entry.amount=entry.amount or 0
+                entry.unit_price=entry.amount;entry.quantity=1;entry.unit_filament_g=entry.filament_g;entry.unit_print_hours=entry.print_hours
+                entry.save()
                 if items is not None:
                     items.instance=entry;items.save()
                     from django.core.files.base import ContentFile
@@ -100,7 +107,7 @@ def entry_form(request,kind,pk=None):
                     first = entry.approved_at is None
                     schedule_dispatch(approve_order(entry))
                     if not first and (old_status != entry.status or old_date != entry.estimated_delivery_date):
-                        event = entry.status if entry.status in ('delivered','cancelled') else 'updated'
+                        event = entry.status if entry.status in ('printing','ready','delivered','cancelled') else 'updated'
                         schedule_dispatch(queue_order_email(entry,event))
             if kind in ('order','quote'):
                 from django.core.files.base import ContentFile
@@ -203,11 +210,9 @@ def printers(request,pk=None):
 
 @staff_only
 def quote_detail(request,pk):
-    order=get_object_or_404(Entry,pk=pk,kind__in=['quote','order','sale'])
-    return render(request,'management/quote.html',{'order':order,
-        'approval_form':ApprovalForm(initial={'estimated_delivery_date':order.estimated_delivery_date or estimate_delivery(order)}),
-        'delivery_form':DeliveryForm(initial={'estimated_delivery_date':order.estimated_delivery_date,'status':order.status}),
-        'products':__import__('apps.landing.models',fromlist=['Product']).Product.objects.filter(is_active=True)})
+    from .commerce import detail
+    return detail(request,pk)
+
 
 @staff_only
 @xframe_options_sameorigin
@@ -231,11 +236,15 @@ def transition(request,pk,target):
             from django.http import HttpResponseBadRequest
             return HttpResponseBadRequest('Este registro ya cambió de estado o la transición no es válida.')
         if target == 'order':
-            form = ApprovalForm(request.POST)
+            from .quotations import confirm_quotation
+            from django.core.exceptions import ValidationError
+            form=ApprovalForm(request.POST)
             if not form.is_valid():
-                messages.error(request,'Revisa la fecha de entrega: usa hoy o una fecha futura válida.')
-                return redirect('management:quote_detail',pk=pk)
-            entry.estimated_delivery_date = form.cleaned_data['estimated_delivery_date'] or estimate_delivery(entry)
+                messages.error(request,'Revisa la fecha de entrega.');return redirect('management:quote_detail',pk=pk)
+            try:confirm_quotation(entry,'internal','Confirmación registrada en gestión.',request.user,form.cleaned_data['estimated_delivery_date'])
+            except ValidationError as error:
+                messages.error(request,' '.join(error.messages));return redirect('management:quote_detail',pk=pk)
+            messages.success(request,'Pedido confirmado.');return redirect('management:quote_detail',pk=pk)
         elif entry.status != 'delivered':
             messages.error(request,'Marca el pedido como entregado antes de archivarlo como venta.')
             return redirect('management:quote_detail',pk=pk)
@@ -265,11 +274,13 @@ def update_delivery(request,pk):
             if (date,status) != (entry.estimated_delivery_date,entry.status) or not entry.approved_at:
                 first = entry.approved_at is None
                 entry.estimated_delivery_date,entry.status = date,status
+                from .models import EntryActivity
+                EntryActivity.objects.create(entry=entry,label=dict(Entry.STATUS)[status],note=f'Entrega estimada: {date:%d/%m/%Y}',actor=request.user)
                 entry.save(update_fields=['estimated_delivery_date','status','updated_at'])
                 if first and status in ('pending','printing','ready'):
                     schedule_dispatch(approve_order(entry))
                 else:
-                    schedule_dispatch(queue_order_email(entry,status if status in ('delivered','cancelled') else 'updated'))
+                    schedule_dispatch(queue_order_email(entry,status if status in ('printing','ready','delivered','cancelled') else 'updated'))
             messages.success(request,'Seguimiento guardado. Si el cliente tiene correo, consulta el aviso en esta ficha.')
     return redirect('management:quote_detail',pk=pk)
 
@@ -278,7 +289,7 @@ def update_delivery(request,pk):
 def retry_order_notifications(request,pk):
     from .workflow import safely_dispatch
     entry = get_object_or_404(Entry,pk=pk,kind__in=['order','sale'])
-    for message in entry.emails.exclude(status='sent'):
+    for message in entry.emails.filter(status__in=['pending','failed']):
         safely_dispatch(message.pk)
     messages.info(request,'Reintento realizado. Consulta el estado del correo.')
     return redirect('management:quote_detail',pk=pk)
@@ -288,7 +299,7 @@ def email_list(request):
     from .models import OperationalEmail
     emails = OperationalEmail.objects.select_related('entry')
     status = request.GET.get('status','')
-    if status in ('pending','failed','sent'):
+    if status in ('pending','failed','sent','skipped'):
         emails = emails.filter(status=status)
     return render(request,'management/emails.html',{'page':Paginator(emails,25).get_page(request.GET.get('page')),'status':status})
 
@@ -356,7 +367,7 @@ def entry_list(request, section='orders'):
     entries = Entry.objects.select_related('contact')
     if section == 'quotes':
         entries = entries.filter(kind='quote')
-        statuses = [choice for choice in Entry.STATUS if choice[0] in ('draft','quoted','cancelled')]
+        statuses = [choice for choice in Entry.STATUS if choice[0] in ('draft','quoted','sent','expired','cancelled')]
     elif section == 'sales':
         entries = entries.filter(kind__in=['order','sale']).exclude(status='cancelled')
         statuses = Entry.STATUS
@@ -433,6 +444,8 @@ def record_payment(request,pk):
         else:
             Payment.objects.create(entry=entry,amount=amount,created_by=request.user)
             entry.paid_amount += amount
+            from .models import EntryActivity
+            EntryActivity.objects.create(entry=entry,label='Abono registrado',note=f'{amount} COP',actor=request.user)
             entry.save(update_fields=['paid_amount','updated_at'])
             messages.success(request,'Abono registrado. El total vendido no cambia.')
     return redirect('management:quote_detail',pk=pk)

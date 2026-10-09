@@ -45,7 +45,7 @@ class OrderForm(EntryForm):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields['amount'].required=False
-        if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] not in ['sold','quoted','draft']]
+        if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] in ['pending','printing','ready','delivered','cancelled']]
         self.fields['estimated_delivery_date'].help_text='Vacío al confirmar: estimación automática según cola y horas. Puedes ajustar el compromiso con el cliente.'
     def clean_amount(self):
         value=self.cleaned_data.get('amount');product=self.cleaned_data.get('reference_product')
@@ -135,13 +135,17 @@ class PrinterForm(forms.ModelForm):
 class QuoteItemForm(forms.ModelForm):
     class Meta:
         model=QuoteItem
-        fields=['variant','name','length_cm','width_cm','height_cm','quantity','unit_price','image','comparison_image']
+        fields=['variant','name','length_cm','width_cm','height_cm','quantity','unit_price','unit_filament_g','unit_print_hours','description','image','comparison_image']
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        for field in ['name','length_cm','width_cm','height_cm','unit_price']:
+        for field in ['name','length_cm','width_cm','height_cm','unit_price','unit_filament_g','unit_print_hours']:
             self.fields[field].required=False
             if not self.instance.pk:self.initial[field]=''
         self.fields['variant'].label='Referencia interna por tamaño (opcional)'
+    def clean_quantity(self):
+        value=self.cleaned_data['quantity']
+        if value>1000000:raise forms.ValidationError('Máximo 1000000 unidades por línea.')
+        return value
     def clean(self):
         data=super().clean();variant=data.get('variant')
         if variant:
@@ -149,7 +153,7 @@ class QuoteItemForm(forms.ModelForm):
             for field in ['length_cm','width_cm','height_cm']:data[field]=data.get(field) if data.get(field) is not None else getattr(variant,field)
             data['unit_price']=data.get('unit_price') if data.get('unit_price') is not None else variant.estimated_price
         if not data.get('name') and not data.get('DELETE'): self.add_error('name','Escribe un producto o elige una referencia.')
-        for field in ['length_cm','width_cm','height_cm','unit_price']:data[field]=data.get(field) or 0
+        for field in ['length_cm','width_cm','height_cm','unit_price','unit_filament_g','unit_print_hours']:data[field]=data.get(field) or 0
         return data
 
 from django.forms.models import BaseInlineFormSet
@@ -169,3 +173,22 @@ class DevelopmentForm(forms.ModelForm):
         model=DevelopmentProject
         fields=['name','project_type','description','customer','status','started_on']
         widgets={'description':forms.Textarea(attrs={'rows':5}),'started_on':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d')}
+
+class WorkflowForm(EntryForm):
+    class Meta(EntryForm.Meta):
+        fields=['title','description','customer','customer_email','customer_phone','product_category','reference_product',
+                'quantity','unit_price','unit_filament_g','unit_print_hours','estimated_delivery_date','image','logo_theme']
+        labels={'title':'Nombre del trabajo','description':'Descripción y condiciones', 'estimated_delivery_date':'Entrega propuesta'}
+        widgets={'description':forms.Textarea(attrs={'rows':3}),'estimated_delivery_date':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d')}
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields['quantity'].max_value=1000000
+        self.fields['description'].help_text='Material, color, acabado y condiciones acordadas con el cliente.'
+        self.fields['estimated_delivery_date'].help_text='Opcional. Al aprobar se propone una fecha si no la registras.'
+    def clean(self):
+        data=super().clean()
+        from decimal import Decimal
+        if data.get('quantity') and data.get('unit_price') is not None:
+            if data['quantity']*data['unit_price'] > Decimal('999999999999.99'):
+                self.add_error('unit_price','El total supera el valor permitido.')
+        return data

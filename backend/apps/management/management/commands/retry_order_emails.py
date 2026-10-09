@@ -6,4 +6,4 @@ class Command(BaseCommand):
     help = 'Reintenta avisos de pedidos y resúmenes pendientes o fallidos.'
     def handle(self,*args,**options):
         sent = dispatch_emails()
-        self.stdout.write(f'Aceptados: {sent}. Pendientes/fallidos: {OperationalEmail.objects.exclude(status="sent").count()}.')
+        self.stdout.write(f'Aceptados: {sent}. Pendientes/fallidos: {OperationalEmail.objects.filter(status__in=["pending","failed"]).count()}.')

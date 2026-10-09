@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
@@ -6,7 +7,7 @@ from apps.landing.validators import private_path, validate_image
 class Entry(models.Model):
     KIND = [('quote','Cotización'),('sale','Venta'),('order','Pedido'),('expense','Gasto')]
     CATEGORY = [('filament','Compra de filamento'),('monthly','Pago mensual'),('maintenance','Mantenimiento'),('energy','Energía'),('software','Software y licencias'),('supplies','Insumos'),('services','Servicios'),('other','Otro')]
-    STATUS = [('draft','Borrador'),('quoted','Cotizado'),('sold','Vendido'),('pending','Pendiente'),('printing','En impresión'),('ready','Listo'),('delivered','Entregado'),('cancelled','Cancelado')]
+    STATUS = [('draft','Borrador'),('quoted','Preparada'),('sent','Enviada'),('expired','Vencida'),('sold','Vendido'),('pending','Pendiente'),('printing','En impresión'),('ready','Listo'),('delivered','Entregado'),('cancelled','Cancelado')]
     kind = models.CharField('Tipo', max_length=10, choices=KIND)
     title = models.CharField('Descripción', max_length=150)
     description = models.TextField('Descripción del producto / proyecto', blank=True)
@@ -32,6 +33,15 @@ class Entry(models.Model):
     customer_email = models.EmailField('Correo del cliente', blank=True)
     customer_phone = models.CharField('Teléfono del cliente', max_length=25, blank=True)
     estimated_delivery_date = models.DateField('Entrega estimada', null=True, blank=True)
+    quantity = models.PositiveIntegerField('Unidades', default=1, validators=[MinValueValidator(1)])
+    unit_price = models.DecimalField('Precio unitario COP', max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    unit_filament_g = models.DecimalField('Filamento por unidad g', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    unit_print_hours = models.DecimalField('Horas por unidad', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    quote_sent_at = models.DateTimeField(null=True, blank=True, editable=False)
+    quote_expires_at = models.DateTimeField(null=True, blank=True, editable=False)
+    approval_nonce = models.UUIDField(default=uuid.uuid4, editable=False)
+    approval_channel = models.CharField('Medio de confirmación', max_length=10, choices=[('email','Enlace del correo'),('message','Mensaje'),('internal','Gestión')], blank=True)
+    approval_note = models.CharField('Referencia de confirmación', max_length=255, blank=True)
     approved_at = models.DateTimeField('Confirmado el', null=True, blank=True, editable=False)
     class Meta:
         ordering = ['-created_at']
@@ -60,6 +70,9 @@ class Entry(models.Model):
         if self.estimated_delivery_date <= today + timedelta(days=3):
             return 'Próximo a vencer'
         return 'Programado'
+    @property
+    def total_units(self):
+        return sum(i.quantity for i in self.items.all()) if self.pk and self.items.exists() else self.quantity
     def __str__(self): return self.title
 
 
@@ -82,7 +95,14 @@ class QuoteItem(models.Model):
     quantity = models.PositiveIntegerField('Cantidad',default=1,validators=[MinValueValidator(1)])
     unit_price = models.DecimalField('Precio unitario COP',max_digits=12,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     image = models.ImageField('Imagen del producto',upload_to=private_path,blank=True,validators=[validate_image])
+    description = models.TextField('Descripción y acabado', blank=True)
+    unit_filament_g = models.DecimalField('Filamento por unidad g',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+    unit_print_hours = models.DecimalField('Horas por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     comparison_image = models.ImageField('Imagen de comparación / escala',upload_to=private_path,blank=True,validators=[validate_image])
+    @property
+    def filament_total(self):return self.quantity*self.unit_filament_g
+    @property
+    def hours_total(self):return self.quantity*self.unit_print_hours
     @property
     def total(self):return self.quantity*self.unit_price
 
@@ -133,10 +153,20 @@ class OperationalEmail(models.Model):
     subject = models.CharField(max_length=255)
     text = models.TextField()
     html = models.TextField()
-    status = models.CharField(max_length=10, choices=[('pending','Pendiente'),('sent','Enviado'),('failed','Falló')], default='pending')
+    status = models.CharField(max_length=10, choices=[('pending','Pendiente'),('sent','Enviado'),('failed','Falló'),('skipped','Descartado')], default='pending')
+    attachment = models.FileField(upload_to=private_path, blank=True)
     attempts = models.PositiveIntegerField(default=0)
     last_error = models.CharField(max_length=160, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     class Meta:
         ordering = ['-created_at','-pk']
+
+
+class EntryActivity(models.Model):
+    entry = models.ForeignKey(Entry,on_delete=models.CASCADE,related_name='activities')
+    label = models.CharField(max_length=120)
+    note = models.CharField(max_length=255,blank=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,null=True,blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:ordering=['-created_at','-pk']
