@@ -67,3 +67,12 @@ Los errores de datos se muestran junto al campo antes de enviar y también se va
 El máximo total de adjuntos queda unificado en 20 MB, 15 MB por archivo y 5 archivos.
 Sin JavaScript, el servidor conserva los campos de texto en la respuesta; los navegadores obligan a seleccionar nuevamente los archivos.
 Actualiza el código y los estáticos: python backend/manage.py collectstatic --noinput. Conserva las variables del servidor y aplica las migraciones pendientes con python backend/manage.py migrate.
+
+TOAST ORIGINALES Y DIAGNÓSTICO SMTP
+Se conserva el CSS original de los toast, con logo, título, colores, animación, cierre y barra de tiempo. El envío asíncrono ahora utiliza ese mismo diseño para avisos de error y éxito; se mantienen los errores junto al campo y los datos no se borran ante fallas.
+OSError por sí solo no identifica la causa de correo. Los nuevos reintentos guardan un diagnóstico seguro y los logs incluyen el tipo, errno y código SMTP, sin credenciales.
+Ejecuta desde el entorno del servicio Railway (no solo en tu computador):
+python backend/manage.py check_email_connection
+Si estás dentro de backend: python manage.py check_email_connection
+El comando abre y autentica la conexión, pero no envía correos. Si falla, comparte únicamente el mensaje del comando, sin las variables ni la contraseña. Si la red SMTP es inaccesible, debe resolverse en el alojamiento para poder usar Gmail directo.
+Una vez resuelta la conexión, usa Reintentar correos pendientes o python backend/manage.py retry_contact_emails. Los correos enviados no se repiten.

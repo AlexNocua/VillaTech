@@ -38,6 +38,7 @@ def contact_response(request, form, errors=None, message='', status=200):
     if 'application/json' in request.headers.get('Accept',''):
         return JsonResponse({'ok':status == 200,'message':message,'errors':errors or {}},status=status)
     if status != 200:
+        messages.error(request,message)
         if errors and errors.get('reference_files'):
             form.add_error(None,' '.join(errors['reference_files']))
         return recuperar_productos(request,contact_form=form,contact_error=message,status=status)

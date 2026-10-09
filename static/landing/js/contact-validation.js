@@ -4,6 +4,13 @@
     if (!form || !window.fetch) return;
     const feedback = document.querySelector('[data-contact-feedback]');
     const button = form.querySelector('[type="submit"]');
+    function notify(message, type) {
+      feedback.hidden=false;
+      feedback.textContent=message;
+      if (window.villaTechToast) window.villaTechToast(message,type || 'error');
+      else feedback.classList.remove('sr-only');
+    }
+
     const fields = ['name','phone','email','service','message','privacy_consent','reference_files'];
     form.noValidate = true;
     function show(name, messages) {
@@ -55,7 +62,7 @@
       const invalid = fields.filter(name=>!validate(name));
       feedback.hidden=false;
       if (invalid.length) {
-        feedback.textContent='Revisa los campos indicados. Tus datos y archivos siguen aquí.';
+        notify('Revisa los campos indicados. Tus datos y archivos siguen aquí.','error');
         focusError(invalid[0]); return;
       }
       button.disabled=true; form.setAttribute('aria-busy','true');
@@ -64,11 +71,13 @@
         const response = await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'Accept':'application/json'},credentials:'same-origin'});
         const contentType = response.headers.get('Content-Type') || '';
         if (!contentType.includes('application/json')) {
-          feedback.textContent=response.status===403 ? 'La sesión de seguridad expiró. Copia tus datos antes de actualizar la página e intentar nuevamente.' : 'No pudimos confirmar el envío. Tus datos se conservan. Revisa antes de reintentar para evitar duplicados.';
+          notify(response.status===403 ? 'La sesión de seguridad expiró. Copia tus datos antes de actualizar la página e intentar nuevamente.' : 'No pudimos confirmar el envío. Tus datos se conservan. Revisa antes de reintentar para evitar duplicados.','error');
           return;
         }
         const result=await response.json();
-        feedback.textContent=result.message || 'No pudimos confirmar el envío. Tus datos se conservan.';
+        const labels={name:'Nombre',phone:'Teléfono',email:'Correo',service:'Servicio',message:'Descripción',privacy_consent:'Privacidad',reference_files:'Archivos'};
+        const details=Object.entries(result.errors || {}).map(([name,errors])=>(labels[name] || name)+': '+errors.join(' ')).join(' ');
+        notify([result.message || 'No pudimos confirmar el envío. Tus datos se conservan.',details].filter(Boolean).join(' '),response.ok && result.ok ? 'success' : 'error');
         if (response.ok && result.ok) {
           form.reset(); fields.forEach(name=>show(name,[]));
           const clear=form.querySelector('[data-file-clear]'); if(clear)clear.click();
@@ -78,14 +87,14 @@
           const first=fields.find(name=>errors[name]); if(first)focusError(first);
         }
       } catch (error) {
-        feedback.textContent='Se interrumpió la conexión. Tus datos y archivos siguen aquí. No pudimos confirmar si llegó la solicitud; revisa antes de reintentar.';
+        notify('Se interrumpió la conexión. Tus datos y archivos siguen aquí. No pudimos confirmar si llegó la solicitud; revisa antes de reintentar.','error');
       } finally {
         button.disabled=false; form.removeAttribute('aria-busy');
       }
     });
     const existing=fields.find(name=>form.querySelector('[data-contact-error="'+name+'"]')?.textContent.trim());
     if(existing) {show(existing,[form.querySelector('[data-contact-error="'+existing+'"]').textContent.trim()]);focusError(existing);}
-    else if(document.querySelector('.form-alert--error'))form.scrollIntoView({block:'center'});
+    else if(document.querySelector('[data-vt-toast].vt-toast--error'))form.scrollIntoView({block:'center'});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

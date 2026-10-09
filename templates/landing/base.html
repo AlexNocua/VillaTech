@@ -529,6 +529,17 @@
       </section>
     {% endif %}
 
+    <template id="vt-toast-template">
+      <article class="toast vt-toast vt-toast--info" role="status" aria-live="polite" aria-atomic="true" data-vt-toast data-bs-autohide="true" data-bs-delay="6500">
+        <span class="vt-toast__line" aria-hidden="true"></span>
+        <div class="vt-toast__brand" aria-hidden="true"><img class="vt-toast__logo" src="{% static 'landing/images/villatech-logo-256.webp' %}" width="44" height="44" alt="" /></div>
+        <div class="vt-toast__content"><div class="vt-toast__heading"><strong class="vt-toast__title">VillaTech</strong><span class="vt-toast__type">Información</span></div><p class="vt-toast__message"></p></div>
+        <button class="vt-toast__close" type="button" data-bs-dismiss="toast" data-vt-toast-close aria-label="Cerrar notificación"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg></button>
+        <span class="vt-toast__progress" aria-hidden="true"></span>
+      </article>
+    </template>
+    <script src="{% static 'landing/js/toasts.js' %}" defer></script>
+
     <a class="skip-link" href="#contenido-principal">Saltar al contenido</a>
 
     {% include 'landing/components/navbar.html' %}

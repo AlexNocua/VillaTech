@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from .models import ContactEmail
+from .mail_diagnostics import mail_error_summary, safe_error_code
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +53,8 @@ def dispatch_contact_emails(contact_id=None):
             except Exception as error:
                 message.status = 'failed'
                 # No credentials, provider bodies, or customer data in logs.
-                message.last_error = type(error).__name__
-                logger.warning('Contact email %s failed (%s)',message.pk,message.last_error)
+                message.last_error = mail_error_summary(error)[:160]
+                logger.warning('Contact email %s failed (%s): %s',message.pk,safe_error_code(error),message.last_error)
             else:
                 message.status = 'sent'; message.sent_at = timezone.now(); message.last_error = ''; sent += 1
             message.save(update_fields=['recipient','status','attempts','last_error','sent_at'])

@@ -46,15 +46,7 @@
         <i aria-hidden="true"></i>
       </div>
 
-      {% if messages %}
-        {% for message in messages %}
-          <div class="form-alert form-alert--{{ message.tags|default:'info' }}" role="status">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-
-      {% if contact_error %}<div class="form-alert form-alert--error" role="alert">{{ contact_error }}</div>{% endif %}
-      {% for error in contact_form.non_field_errors %}<p class="contact-field-error" role="alert">{{ error }}</p>{% endfor %}
-      <div data-contact-feedback role="status" aria-live="polite" hidden></div>
+      <div data-contact-feedback class="sr-only" role="status" aria-live="polite" hidden></div>
       <form class="contact-form" data-contact-form action="{% url 'landing:contact_form_action' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-row">

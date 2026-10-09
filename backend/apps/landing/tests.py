@@ -169,6 +169,9 @@ class ContactValidationTests(TestCase):
         self.assertContains(response,'Nombre conservado',status_code=400)
         self.assertContains(response,'Texto conservado',status_code=400)
         self.assertContains(response,'Introduce un correo válido',status_code=400)
+        self.assertContains(response,'vt-toast__brand',status_code=400)
+        self.assertContains(response,'Ocurrió un problema',status_code=400)
+        self.assertNotContains(response,'form-alert--error',status_code=400)
     def test_internal_error_is_generic_and_logged(self):
         with patch('apps.landing.views.Contact.objects.create',side_effect=RuntimeError('private database detail')),self.assertLogs('apps.landing.views',level='ERROR'):
             response=self.client.post('/submit',self.data,HTTP_ACCEPT='application/json')
@@ -183,3 +186,25 @@ class ContactValidationTests(TestCase):
         response=self.client.post('/submit',self.data,HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code,400)
         self.assertIn('reference_files',response.json()['errors'])
+
+class MailDiagnosticTests(TestCase):
+    def test_network_and_authentication_are_distinguished_without_secrets(self):
+        import errno,smtplib
+        from .mail_diagnostics import mail_error_summary,safe_error_code
+        network=OSError(errno.ENETUNREACH,'secret provider body')
+        auth=smtplib.SMTPAuthenticationError(535,b'secret provider body')
+        self.assertIn('red SMTP',mail_error_summary(network))
+        self.assertIn('contraseña de aplicación',mail_error_summary(auth))
+        self.assertNotIn('secret',mail_error_summary(auth))
+        self.assertNotIn('secret',safe_error_code(network))
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',EMAIL_HOST='smtp.gmail.com',EMAIL_HOST_USER='test@example.com',EMAIL_HOST_PASSWORD='abcd efgh')
+    @patch('apps.landing.management.commands.check_email_connection.get_connection')
+    def test_connection_check_does_not_send(self,mocked):
+        from django.core.management import call_command
+        from io import StringIO
+        mocked.return_value.password='abcd efgh'
+        output=StringIO();call_command('check_email_connection',stdout=output)
+        mocked.return_value.open.assert_called_once()
+        mocked.return_value.send_messages.assert_not_called()
+        self.assertEqual(mocked.return_value.password,'abcdefgh')
+        self.assertNotIn('abcdefgh',output.getvalue())
