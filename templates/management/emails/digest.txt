@@ -1,0 +1,9 @@
+VillaTech · Agenda de pedidos · {{ today|date:'d/m/Y' }}
+Pendientes: {{ pending }}
+Vencidos: {{ overdue }}
+Entregas hoy: {{ due_today }}
+Próximos 3 días: {{ upcoming }}
+Sin fecha: {{ undated }}
+{% for entry in urgent %}#{{ entry.pk }} · {{ entry.title }} · {{ entry.customer }} · {{ entry.estimated_delivery_date|date:'d/m/Y' }} · {{ entry.delivery_alert }}
+{% endfor %}{% if truncated %}Se muestran las primeras 100 fechas.
+{% endif %}Consulta la agenda completa: {{ management_url }}

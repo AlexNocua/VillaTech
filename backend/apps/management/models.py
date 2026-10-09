@@ -31,6 +31,8 @@ class Entry(models.Model):
     contact = models.OneToOneField('landing.Contact', on_delete=models.PROTECT, null=True, blank=True, related_name='entry')
     customer_email = models.EmailField('Correo del cliente', blank=True)
     customer_phone = models.CharField('Teléfono del cliente', max_length=25, blank=True)
+    estimated_delivery_date = models.DateField('Entrega estimada', null=True, blank=True)
+    approved_at = models.DateTimeField('Confirmado el', null=True, blank=True, editable=False)
     class Meta:
         ordering = ['-created_at']
     def save(self,*args,**kwargs):
@@ -42,6 +44,22 @@ class Entry(models.Model):
     @property
     def outstanding(self):
         return max(self.amount - self.paid_amount, 0) if self.kind in ('order','sale') and self.status != 'cancelled' else 0
+    @property
+    def delivery_alert(self):
+        from django.utils import timezone
+        from datetime import timedelta
+        if self.kind != 'order' or self.status in ('delivered','cancelled','sold'):
+            return ''
+        if not self.estimated_delivery_date:
+            return 'Sin fecha'
+        today = timezone.localdate()
+        if self.estimated_delivery_date < today:
+            return 'Vencido'
+        if self.estimated_delivery_date == today:
+            return 'Entrega hoy'
+        if self.estimated_delivery_date <= today + timedelta(days=3):
+            return 'Próximo a vencer'
+        return 'Programado'
     def __str__(self): return self.title
 
 
@@ -105,3 +123,20 @@ class StockMovement(models.Model):
     created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
     class Meta:
         ordering=['-created_at','-pk']
+
+
+class OperationalEmail(models.Model):
+    """Immutable event snapshot; failed delivery can be retried without losing the order."""
+    entry = models.ForeignKey(Entry, on_delete=models.PROTECT, null=True, blank=True, related_name='emails')
+    event_key = models.CharField(max_length=160, unique=True)
+    recipient = models.EmailField(blank=True)
+    subject = models.CharField(max_length=255)
+    text = models.TextField()
+    html = models.TextField()
+    status = models.CharField(max_length=10, choices=[('pending','Pendiente'),('sent','Enviado'),('failed','Falló')], default='pending')
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.CharField(max_length=160, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    class Meta:
+        ordering = ['-created_at','-pk']

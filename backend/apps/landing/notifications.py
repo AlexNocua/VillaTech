@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from .models import ContactEmail
 from .mail_diagnostics import mail_error_summary, safe_error_code
+from .email_branding import branded_mail
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,9 @@ def dispatch_contact_emails(contact_id=None):
                 connection = get_connection()
                 if settings.EMAIL_HOST == 'smtp.gmail.com' and hasattr(connection, 'password'):
                     connection.password = ''.join((connection.password or '').split())
-                mail = EmailMultiAlternatives(message.subject,message.text,settings.DEFAULT_FROM_EMAIL,
-                    [message.recipient], connection=connection, reply_to=[message.reply_to] if message.reply_to else [],
-                    headers={'Idempotency-Key': f'villatech-contact-{message.contact_id}-{message.audience}'})
-                mail.attach_alternative(message.html,'text/html')
+                mail = branded_mail(message.subject, message.text, message.recipient, message.html,
+                    connection=connection, reply_to=message.reply_to,
+                    key=f'villatech-contact-{message.contact_id}-{message.audience}')
                 if mail.send(fail_silently=False) != 1:
                     raise RuntimeError('El proveedor no aceptó el correo')
             except Exception as error:

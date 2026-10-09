@@ -24,6 +24,8 @@ class EntryForm(forms.ModelForm):
             self.add_error('amount','El total no puede ser menor que los abonos registrados.')
         if data.get('status') == 'cancelled' and self.instance.paid_amount:
             self.add_error('status','Este pedido tiene abonos. Revisa y concilia los pagos antes de cancelar.')
+        if self.instance.pk and self.instance.status in ('delivered','cancelled') and data.get('status') and data['status'] != self.instance.status:
+            self.add_error('status','El pedido está cerrado; conserva su estado para no reabrir su historial.')
         return data
     class Meta:
         model=Entry
@@ -37,20 +39,42 @@ class SaleForm(EntryForm):
 
 class OrderForm(EntryForm):
     class Meta(EntryForm.Meta):
-        fields=['title','description','customer','product_category','reference_product','customer_email','customer_phone','amount','status','filament_g','print_hours','image','logo_theme']
+        fields=['title','description','customer','product_category','reference_product','customer_email','customer_phone','amount','status','estimated_delivery_date','filament_g','print_hours','image','logo_theme']
         labels={'title':'Producto / proyecto solicitado','amount':'Precio total (COP, si no detallas productos)'}
-        widgets={'description':forms.Textarea(attrs={'rows':3})}
+        widgets={'description':forms.Textarea(attrs={'rows':3}),'estimated_delivery_date':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d')}
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields['amount'].required=False
         if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] not in ['sold','quoted','draft']]
+        self.fields['estimated_delivery_date'].help_text='Vacío al confirmar: estimación automática según cola y horas. Puedes ajustar el compromiso con el cliente.'
     def clean_amount(self):
         value=self.cleaned_data.get('amount');product=self.cleaned_data.get('reference_product')
         return product.price if value is None and product else value or 0
+    def clean_estimated_delivery_date(self):
+        from django.utils import timezone
+        value = self.cleaned_data.get('estimated_delivery_date')
+        if value and value < timezone.localdate() and not self.instance.approved_at:
+            raise forms.ValidationError('Confirma una entrega para hoy o una fecha futura.')
+        return value
 
 class QuotationForm(OrderForm):
     class Meta(OrderForm.Meta):
         fields=[name for name in OrderForm.Meta.fields if name!='status']
+
+class DeliveryForm(forms.Form):
+    estimated_delivery_date = forms.DateField(label='Entrega estimada', required=False,
+        widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+    status = forms.ChoiceField(label='Estado de producción',choices=[c for c in Entry.STATUS if c[0] in ('pending','printing','ready','delivered','cancelled')])
+
+class ApprovalForm(forms.Form):
+    estimated_delivery_date = forms.DateField(label='Entrega estimada', required=False,
+        widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+    def clean_estimated_delivery_date(self):
+        from django.utils import timezone
+        date = self.cleaned_data.get('estimated_delivery_date')
+        if date and date < timezone.localdate():
+            raise forms.ValidationError('La confirmación debe proponer hoy o una fecha futura.')
+        return date
 
 class ExpenseForm(forms.ModelForm):
     class Meta:

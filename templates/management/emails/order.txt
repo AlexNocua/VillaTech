@@ -1,0 +1,11 @@
+VillaTech · {{ heading }}
+Hola {{ entry.customer|default:'cliente' }}
+Pedido #{{ entry.pk }}: {{ entry.title }}
+Estado: {{ entry.get_status_display }}
+{% if event != 'cancelled' and event != 'delivered' %}Entrega estimada: {{ entry.estimated_delivery_date|date:'d/m/Y'|default:'Por confirmar' }}
+{% endif %}Total COP: {{ entry.amount }}
+Abonos COP: {{ entry.paid_amount }}
+Saldo pendiente COP: {{ entry.outstanding }}
+La fecha de entrega es estimada. La confirmación del pedido no lo marca como pagado.
+Responde a este correo para coordinar los detalles.
+VillaTech · Donde tus ideas toman forma.

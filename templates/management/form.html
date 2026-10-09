@@ -11,9 +11,9 @@
 {% endif %}
 <section class="panel"><form method="post" enctype="multipart/form-data" id="entry-form">{% csrf_token %}<div class="form-grid">{{ form.as_div }}</div>
 {% if form.image %}<p class="muted">Imagen de referencia JPG, PNG o WEBP de hasta 5 MB.</p>{% endif %}
-{% if items %}<h2>Productos de la cotización</h2><p class="muted">Usa una variante existente o escribe una pieza personalizada. Deja las medidas y el precio vacíos para tomar los de la variante; los valores que escribas tienen prioridad. Si agregas productos, su suma determina el total.</p>
+{% if items %}<h2>Detalle de productos</h2><p class="muted">Usa una variante existente o escribe una pieza personalizada. Deja las medidas y el precio vacíos para tomar los de la variante; los valores que escribas tienen prioridad. Si agregas productos, su suma determina el total.</p>
 {{ items.management_form }}{{ items.non_form_errors }}<div id="quote-items">{% for item in items %}<fieldset class="quote-item"><legend>Producto {{ forloop.counter }}</legend><div class="form-grid">{{ item.as_div }}</div></fieldset>{% endfor %}</div>
 <template id="quote-empty"><fieldset class="quote-item"><legend>Nuevo producto</legend><div class="form-grid">{{ items.empty_form.as_div }}</div></fieldset></template><button type="button" id="add-quote-item">+ Agregar producto</button>
 {% endif %}
-<button class="primary" type="submit">{% if items %}Guardar y generar cotización PDF{% elif kind == 'sale' %}Registrar venta{% elif kind == 'expense' %}Registrar gasto{% else %}Guardar{% endif %} →</button>
+<button class="primary" type="submit">{% if items %}Guardar registro y documento PDF{% elif kind == 'sale' %}Registrar venta{% elif kind == 'expense' %}Registrar gasto{% else %}Guardar{% endif %} →</button>
 </form></section>{% endblock %}
