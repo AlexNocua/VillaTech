@@ -98,7 +98,7 @@ class CommerceTests(TestCase):
   self.assertContains(Client().get(reverse('management:customer_quote',args=[token])),'Solicita una nueva versión')
  def test_state_emails_and_payments_after_ready(self):
   entry=self.quote();confirm_quotation(entry,'internal');entry.refresh_from_db()
-  for status in ('printing','ready','delivered'):
+  for status in ('printing','ready'):
    with self.captureOnCommitCallbacks(execute=True):self.client.post(f'/gestion/registro/{entry.pk}/entrega/',{'status':status})
   headings=list(entry.emails.values_list('subject',flat=True))
   self.assertTrue(any('elaboración' in h for h in headings));self.assertTrue(any('terminado' in h for h in headings))

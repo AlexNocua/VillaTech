@@ -1,3 +1,6 @@
+## Actualización V9 — confirmación, reenvíos, depuración y cierre de ventas
+Lee primero `LEEME_ACTUALIZACION_V9.md`. Incluye las dos migraciones necesarias y las instrucciones del flujo nuevo.
+
 ## Confirmación de clientes — actualización V8
 Consulta `LEEME_CONFIRMACION_V8.md` para el ajuste CSRF y la nueva vista pública.
 

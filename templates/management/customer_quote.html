@@ -5,7 +5,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
   <title>VillaTech · {% if confirmed %}Pedido confirmado{% else %}Tu cotización{% endif %}</title>
-  <link rel="stylesheet" href="{% static 'landing/css/customer-quote.css' %}">
+  <link rel="stylesheet" href="{% static 'landing/css/customer-quote.css' %}?v=9">
 </head>
 <body>
   <header class="brand"><a href="/"><img src="{% static 'landing/images/logo-light-transparent.png' %}" width="64" height="64" alt="VillaTech"><span>VillaTech<small>Ideas que toman forma</small></span></a><span class="secure-label">Tu espacio de confirmación</span></header>
@@ -25,12 +25,13 @@
         </tbody></table></div><p class="footnote">Todos los valores están expresados en pesos colombianos (COP).</p>
       </section>
       <aside class="card summary" aria-label="Resumen de la cotización"><p class="eyebrow">TOTAL {% if confirmed %}DEL PEDIDO{% else %}DE LA COTIZACIÓN{% endif %}</p><p class="total">$ {{ order.amount|co_number }}<small>COP</small></p><dl>
-        {% if confirmed %}<div><dt>Estado actual</dt><dd>{{ order.get_status_display }}</dd></div><div><dt>Entrega estimada</dt><dd>{{ order.estimated_delivery_date|date:'d/m/Y'|default:'Por coordinar' }}</dd></div><div><dt>Abonos registrados</dt><dd>$ {{ order.paid_amount|co_number }}</dd></div><div><dt>Saldo pendiente</dt><dd>$ {{ order.outstanding|co_number }}</dd></div>
+        {% if confirmed %}<div><dt>Estado actual</dt><dd>{{ order.get_status_display }}</dd></div><div><dt>Entrega estimada</dt><dd>{{ order.estimated_delivery_date|date:'d/m/Y'|default:'Por coordinar' }}</dd></div><div><dt>Total liquidado</dt><dd>$ {{ order.paid_amount|co_number }}</dd></div><div><dt>Saldo pendiente</dt><dd>$ {{ order.outstanding|co_number }}</dd></div>
         {% else %}<div><dt>Válida hasta</dt><dd>{{ order.quote_expires_at|date:'d/m/Y' }}<small>{{ order.quote_expires_at|date:'H:i' }} · hora de Colombia</small></dd></div>{% if order.estimated_delivery_date %}<div><dt>Entrega propuesta</dt><dd>{{ order.estimated_delivery_date|date:'d/m/Y' }}</dd></div>{% endif %}{% endif %}
         </dl><p class="footnote">{% if confirmed %}La fecha es estimada. Los abonos y la entrega se coordinan con VillaTech.{% else %}Al aprobar, la cotización pasa a pedido. Recibirás la confirmación y la fecha estimada de entrega por correo.{% endif %}</p></aside>
     </div>
     {% if not confirmed %}<section class="card approval"><h2>¿Todo está como lo necesitas?</h2><p>Si necesitas ajustar algún detalle, responde al correo antes de confirmar.</p>{% if accept_error %}<p role="alert" class="error">{{ accept_error }}</p>{% endif %}
       <form method="post">{% csrf_token %}<label class="accept"><input type="checkbox" name="accept" value="yes" required><span>Acepto el detalle y el precio de esta cotización y quiero confirmar el pedido.</span></label><button class="primary" type="submit">Confirmar mi pedido <span aria-hidden="true">→</span></button></form><p class="footnote">La confirmación no registra un pago. Puedes coordinar tus abonos con VillaTech.</p></section>{% else %}<a class="back-link" href="/">Volver a VillaTech →</a>{% endif %}
     {% endif %}
+    {% if support_url %}<section class="support-link"><strong>¿Tuviste algún problema?</strong><p>Cuéntanos lo ocurrido o solicita un nuevo enlace de confirmación.</p><a class="back-link" href="{{ support_url }}">Reportar problema y solicitar ayuda →</a></section>{% endif %}
   </main><footer>VillaTech · Diseño y fabricación 3D<br><span>¿Necesitas ayuda? Responde al correo que te enviamos.</span></footer>
 </body></html>

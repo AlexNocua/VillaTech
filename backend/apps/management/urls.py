@@ -4,11 +4,15 @@ from . import views, commerce
 app_name='management'
 urlpatterns=[
  path('flujo/',commerce.board,name='workflow'),
+ path('flujo/eliminar-seleccion/',commerce.bulk_delete,name='bulk_delete'),
  path('flujo/nuevo/',commerce.edit,name='workflow_create'),
  path('flujo/<int:pk>/',commerce.detail,name='workflow_detail'),
  path('flujo/<int:pk>/editar/',commerce.edit,name='workflow_edit'),
  path('flujo/<int:pk>/enviar/',commerce.send,name='send_quotation'),
  path('flujo/<int:pk>/confirmar/',commerce.confirm,name='confirm_quotation'),
+ path('flujo/<int:pk>/reenviar/',commerce.resend,name='resend_quotation'),
+ path('flujo/<int:pk>/eliminar/',commerce.delete_entry,name='delete_entry'),
+ path('confirmar-cotizacion/<str:token>/problema/',commerce.customer_issue,name='customer_issue'),
  path('flujo/<int:pk>/renovar/',commerce.renew,name='renew_quotation'),
  path('confirmar-cotizacion/<str:token>/',commerce.customer_quote,name='customer_quote'),
  path('registro/<int:pk>/entrega/',views.update_delivery,name='update_delivery'),

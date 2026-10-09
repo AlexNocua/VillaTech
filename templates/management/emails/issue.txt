@@ -1,0 +1,7 @@
+VillaTech · Reporte de confirmación #{{ issue.pk }}
+Referencia: {% if issue.entry_id %}VT-{{ issue.entry_id }}{% else %}Enlace no identificado{% endif %}
+Correo para responder: {{ issue.customer_email|default:'No indicado' }}
+Comentario del cliente:
+{{ issue.comment }}
+Revisa el registro y reenvía una nueva URL si corresponde:
+{{ management_url }}

@@ -23,11 +23,11 @@ def approval_url(entry):
 
 def entry_from_token(token,lock=False):
     try:
-        data=signing.loads(token,salt=SALT,max_age=48*60*60)
+        data=signing.loads(token,salt=SALT)
         qs=Entry.objects.select_for_update() if lock else Entry.objects
         return qs.get(pk=data['id'],approval_nonce=data['nonce'])
     except (signing.BadSignature,KeyError,ValueError,TypeError,Entry.DoesNotExist):
-        raise ValidationError('El enlace ya no es válido. Solicita una nueva cotización a VillaTech.') from None
+        raise ValidationError('Este enlace no es válido o fue reemplazado. Solicita un nuevo enlace a VillaTech.') from None
 
 def recalculate(entry):
     lines=list(entry.items.all())
@@ -45,7 +45,8 @@ def expire_quotes():
     count=0
     for pk in list(Entry.objects.filter(kind='quote',status='sent',quote_expires_at__lte=timezone.now()).values_list('pk',flat=True)):
         with transaction.atomic():
-            entry=Entry.objects.select_for_update().get(pk=pk)
+            entry=Entry.objects.select_for_update().filter(pk=pk).first()
+            if not entry:continue
             if entry.kind!='quote' or entry.status!='sent' or entry.quote_expires_at>timezone.now():continue
             entry.status='expired';entry.save(update_fields=['status','updated_at'])
             EntryActivity.objects.create(entry=entry,label='Cotización vencida',note='Sin aprobación durante las 48 horas de vigencia.')
@@ -63,8 +64,12 @@ def send_quotation(entry,actor):
     if entry.status=='sent':
         if entry.quote_expires_at and entry.quote_expires_at<=timezone.now():
             raise ValidationError('La cotización venció. Prepara una nueva versión.')
-        return OperationalEmail.objects.get(event_key=f'quote:{entry.pk}:{entry.approval_nonce}')
-    entry.quote_sent_at=timezone.now();entry.quote_expires_at=entry.quote_sent_at+timedelta(hours=48)
+        message = OperationalEmail.objects.filter(event_key=f'quote:{entry.pk}:{entry.approval_nonce}').first()
+        if message is None:
+            raise ValidationError('No hay un correo de esta versión. Usa Reenviar con URL nueva.')
+        return message
+    # Start the 48-hour window only when the provider accepts this version.
+    entry.quote_sent_at=None;entry.quote_expires_at=None
     entry.status='sent';entry.quotation_pdf=''
     entry.save(update_fields=['quote_sent_at','quote_expires_at','status','quotation_pdf','updated_at'])
     context={'entry':entry,'heading':'Tu cotización está lista','approval_url':approval_url(entry)}
@@ -74,7 +79,7 @@ def send_quotation(entry,actor):
         html=render_to_string('management/emails/quotation.html',context))
     from .quotation import build_quote
     message.attachment.save(f'VillaTech-cotizacion-{entry.pk}.pdf',ContentFile(build_quote(entry)),save=True)
-    EntryActivity.objects.create(entry=entry,label='Cotización enviada a la cola',actor=actor,note='Vigencia de 48 horas desde este envío. Revisa el estado del correo.')
+    EntryActivity.objects.create(entry=entry,label='Cotización enviada a la cola',actor=actor,note='La vigencia comienza al aceptar el proveedor el correo. Revisa el estado del envío.')
     return message
 
 def confirm_quotation(entry,channel='internal',note='',actor=None,date=None):
@@ -83,7 +88,7 @@ def confirm_quotation(entry,channel='internal',note='',actor=None,date=None):
         raise ValidationError('Esta cotización no admite aprobación. Solicita una nueva versión si venció.')
     if entry.quote_expires_at and entry.quote_expires_at<=timezone.now():
         raise ValidationError('La cotización venció y ya no puede aprobarse.')
-    if channel=='email' and entry.status!='sent':
+    if channel=='email' and (entry.status!='sent' or not entry.quote_expires_at):
         raise ValidationError('La cotización no está disponible para confirmación por correo.')
     if entry.amount<=0:raise ValidationError('Define el precio antes de confirmar.')
     entry.kind='order';entry.status='pending';entry.approval_channel=channel;entry.approval_note=note[:255]

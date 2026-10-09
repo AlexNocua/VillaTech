@@ -77,6 +77,9 @@ def entry_form(request,kind,pk=None):
                 entry=form.save(commit=False);entry.kind=kind
                 if pk:
                     current = Entry.objects.select_for_update().get(pk=pk)
+                    if current.kind != kind:
+                        messages.error(request, 'El registro cambió de etapa. Revisa su ficha antes de editar.')
+                        return redirect('management:quote_detail', pk=pk)
                     # Preserve payments and approval recorded while the editor was open.
                     entry.paid_amount, entry.approved_at = current.paid_amount,current.approved_at
                     effective = entry.amount
@@ -103,7 +106,10 @@ def entry_form(request,kind,pk=None):
                             from django.core.exceptions import ValidationError
                             raise ValidationError('El total de productos no puede ser menor que los abonos registrados.')
                         entry.save(update_fields=['amount','updated_at'])
-                if kind == 'order':
+                if kind == 'order' and entry.status == 'delivered':
+                    from .workflow import complete_delivery
+                    complete_delivery(entry, request.user)
+                elif kind == 'order':
                     first = entry.approved_at is None
                     schedule_dispatch(approve_order(entry))
                     if not first and (old_status != entry.status or old_date != entry.estimated_delivery_date):
@@ -248,6 +254,11 @@ def transition(request,pk,target):
         elif entry.status != 'delivered':
             messages.error(request,'Marca el pedido como entregado antes de archivarlo como venta.')
             return redirect('management:quote_detail',pk=pk)
+        if target == 'sale':
+            from .workflow import complete_delivery
+            complete_delivery(entry, request.user)
+            messages.success(request, 'Entrega cerrada como venta y saldo liquidado.')
+            return redirect('management:quote_detail', pk=entry.pk)
         entry.kind=target
         entry.status='pending' if target=='order' else 'sold'
         entry.save()
@@ -260,10 +271,18 @@ def transition(request,pk,target):
 @require_POST
 def update_delivery(request,pk):
     with transaction.atomic():
-        entry = get_object_or_404(Entry.objects.select_for_update(),pk=pk,kind='order')
+        entry = get_object_or_404(Entry.objects.select_for_update(),pk=pk,kind__in=['order','sale'])
+        if entry.kind == 'sale':
+            messages.info(request, 'Esta entrega ya está cerrada como venta.')
+            return redirect('management:quote_detail', pk=pk)
         form = DeliveryForm(request.POST)
         if not form.is_valid():
             messages.error(request,'Revisa el estado y la fecha de entrega.')
+        elif form.cleaned_data['status'] == 'delivered' and entry.status != 'cancelled':
+            from .workflow import complete_delivery
+            entry.estimated_delivery_date = form.cleaned_data['estimated_delivery_date'] or entry.estimated_delivery_date
+            complete_delivery(entry, request.user)
+            messages.success(request, 'Entregado: venta registrada y saldo liquidado automáticamente.')
         elif entry.status in ('delivered','cancelled'):
             messages.error(request,'El pedido está cerrado. Conserva su historial y crea otro registro si corresponde.')
         elif form.cleaned_data['status'] == 'cancelled' and entry.paid_amount:

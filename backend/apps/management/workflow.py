@@ -80,18 +80,32 @@ def dispatch_emails(pk=None):
     sent = 0
     for message_pk in list(pending.order_by('pk').values_list('pk',flat=True)):
         with transaction.atomic():
-            message = OperationalEmail.objects.select_for_update().get(pk=message_pk)
+            # Use the same lock order as staff actions and deletion.
+            entry_id = OperationalEmail.objects.filter(pk=message_pk).values_list('entry_id', flat=True).first()
+            locked_entry = Entry.objects.select_for_update().filter(pk=entry_id).first() if entry_id else None
+            message = OperationalEmail.objects.select_for_update().filter(pk=message_pk).first()
+            if message is None:
+                continue
             if message.status not in ('pending','failed'):
                 continue
             if not message.recipient and message.event_key.startswith('digest:'):
                 message.recipient = settings.CONTACT_NOTIFICATION_EMAIL
             if message.event_key.startswith('quote:'):
-                entry=message.entry
-                if not entry or entry.kind!='quote' or entry.status!='sent' or str(entry.approval_nonce)!=message.event_key.rsplit(':',1)[-1] or not entry.quote_expires_at or entry.quote_expires_at<=timezone.now():
+                entry=locked_entry
+                if not entry or entry.kind!='quote' or entry.status!='sent' or str(entry.approval_nonce)!=message.event_key.rsplit(':',1)[-1] or (entry.quote_expires_at and entry.quote_expires_at<=timezone.now()):
                     message.status='skipped';message.last_error='Cotización vencida, sustituida o aprobada.'
                     message.save(update_fields=['status','last_error'])
                     continue
             message.attempts += 1
+            quotation_attempt = None
+            if message.event_key.startswith('quote:') and entry.quote_sent_at is None:
+                from .quotations import approval_url
+                quotation_attempt = timezone.now()
+                entry.quote_sent_at = quotation_attempt
+                entry.quote_expires_at = quotation_attempt + timedelta(hours=48)
+                context = {'entry': entry, 'heading': 'Tu cotización está lista', 'approval_url': approval_url(entry)}
+                message.text = render_to_string('management/emails/quotation.txt', context)
+                message.html = render_to_string('management/emails/quotation.html', context)
             try:
                 validate_email(message.recipient)
                 mail = branded_mail(message.subject,message.text,message.recipient,message.html,
@@ -109,8 +123,14 @@ def dispatch_emails(pk=None):
                 message.status = 'sent'
                 message.sent_at = timezone.now()
                 message.last_error = ''
+                if quotation_attempt is not None:
+                    entry.quote_sent_at = message.sent_at
+                    entry.quote_expires_at = message.sent_at + timedelta(hours=48)
+                    entry.save(update_fields=['quote_sent_at', 'quote_expires_at', 'updated_at'])
+                    from .models import EntryActivity
+                    EntryActivity.objects.create(entry=entry, label='Correo de cotización aceptado', note='Enlace vigente durante 48 horas desde el envío aceptado.')
                 sent += 1
-            message.save(update_fields=['recipient','attempts','status','last_error','sent_at'])
+            message.save(update_fields=['recipient','attempts','status','last_error','sent_at','text','html'])
     return sent
 
 def safely_dispatch(pk):
@@ -138,3 +158,23 @@ def queue_daily_digest(today=None):
         'subject':f'VillaTech · {context["pending"]} pedidos pendientes · {today:%d/%m/%Y}',
         'text':render_to_string('management/emails/digest.txt',context),
         'html':render_to_string('management/emails/digest.html',context)})[0]
+
+
+def complete_delivery(entry, actor):
+    """Explicit delivery closes the balance without manufacturing a Payment row."""
+    if entry.kind == 'sale':
+        return False
+    if entry.kind != 'order' or entry.status == 'cancelled':
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Solo un pedido activo puede cerrarse como venta entregada.')
+    from .models import EntryActivity
+    settled = entry.outstanding
+    entry.delivery_settled_amount += settled
+    entry.paid_amount = entry.amount
+    entry.kind = 'sale'
+    entry.status = 'sold'
+    entry.save()
+    EntryActivity.objects.create(entry=entry, label='Entregado y cerrado como venta',
+        note=f'Saldo liquidado automáticamente al entregar: {settled:.2f} COP. Se conservan los abonos previos.', actor=actor)
+    schedule_dispatch(queue_order_email(entry, 'delivered'))
+    return True

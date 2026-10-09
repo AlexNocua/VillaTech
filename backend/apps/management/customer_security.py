@@ -19,11 +19,12 @@ def customer_headers(view):
 @customer_headers
 def csrf_failure(request, reason=''):
     match = request.resolver_match
-    if match and match.view_name == 'management:customer_quote':
+    if match and match.view_name in ('management:customer_quote','management:customer_issue'):
         # Never retry a POST or approve from an error handler. A fresh GET
         # rebuilds the form and its cookie; customer must explicitly approve.
         return render(request, 'management/customer_quote.html', {
             'security_error': True,
             'retry_url': request.path,
+            'support_url': __import__('django.urls',fromlist=['reverse']).reverse('management:customer_issue',args=[match.kwargs['token']]),
         }, status=403)
     return default_csrf_failure(request, reason=reason)

@@ -63,7 +63,7 @@ class OrderWorkflowTests(TestCase):
         self.client.post(f'/gestion/registro/{quote.pk}/convertir/order/',{'estimated_delivery_date':'ayer'})
         quote.refresh_from_db();self.assertEqual(quote.kind,'quote')
         self.assertEqual(OperationalEmail.objects.count(),0)
-    def test_status_update_delivery_and_archive_keep_receivable(self):
+    def test_status_update_delivery_closes_sale_and_balance(self):
         order=self.order()
         approve_order(order);dispatch_emails()
         path=f'/gestion/registro/{order.pk}/entrega/'
@@ -77,7 +77,8 @@ class OrderWorkflowTests(TestCase):
             self.client.post(path,{'status':'delivered','estimated_delivery_date':day.isoformat()})
         self.client.post(f'/gestion/registro/{order.pk}/convertir/sale/')
         order.refresh_from_db();self.assertEqual(order.kind,'sale')
-        self.assertEqual(order.outstanding,100000)
+        self.assertEqual(order.outstanding,0)
+        self.assertEqual(order.delivery_settled_amount,100000)
         self.assertEqual(self.client.get('/gestion/').context['pending'],0)
     def test_cannot_cancel_paid_order_or_archive_before_delivery(self):
         order=self.order(paid_amount=1000)

@@ -17,6 +17,7 @@ class Entry(models.Model):
     sold_at = models.DateTimeField('Fecha de venta',null=True,blank=True,editable=False)
     customer = models.CharField('Cliente', max_length=150, blank=True)
     paid_amount = models.DecimalField('Total abonado COP', max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    delivery_settled_amount = models.DecimalField('Saldo liquidado al entregar COP', max_digits=14, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     amount = models.DecimalField('Valor total COP', max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
     category = models.CharField('Categoría de gasto', max_length=15, choices=CATEGORY, default='other')
     status = models.CharField('Estado del pedido', max_length=15, choices=STATUS, default='pending')
@@ -128,7 +129,7 @@ class ProjectScreenshot(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
 
 class Payment(models.Model):
-    entry=models.ForeignKey(Entry,on_delete=models.PROTECT,related_name='payments')
+    entry=models.ForeignKey(Entry,on_delete=models.CASCADE,related_name='payments')
     amount=models.DecimalField('Abono COP',max_digits=14,decimal_places=2,validators=[MinValueValidator(0.01)])
     created_at=models.DateTimeField(auto_now_add=True)
     created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
@@ -147,7 +148,7 @@ class StockMovement(models.Model):
 
 class OperationalEmail(models.Model):
     """Immutable event snapshot; failed delivery can be retried without losing the order."""
-    entry = models.ForeignKey(Entry, on_delete=models.PROTECT, null=True, blank=True, related_name='emails')
+    entry = models.ForeignKey(Entry, on_delete=models.CASCADE, null=True, blank=True, related_name='emails')
     event_key = models.CharField(max_length=160, unique=True)
     recipient = models.EmailField(blank=True)
     subject = models.CharField(max_length=255)
@@ -170,3 +171,12 @@ class EntryActivity(models.Model):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.SET_NULL,null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:ordering=['-created_at','-pk']
+
+
+class CustomerIssue(models.Model):
+    entry = models.ForeignKey(Entry, on_delete=models.SET_NULL, null=True, blank=True, related_name='customer_issues')
+    customer_email = models.EmailField('Correo para responder', blank=True)
+    comment = models.TextField('¿Qué ocurrió?', max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['-created_at', '-pk']

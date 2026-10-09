@@ -68,3 +68,12 @@ if(workflowVariants){
   }refreshUnitTotals();
  });
 }
+
+const batchForm=document.getElementById('bulk-delete-form');
+if(batchForm){
+ const boxes=[...batchForm.querySelectorAll('input[name="entries"]')],selectPage=document.getElementById('select-page');
+ const count=document.getElementById('selected-count'),submit=batchForm.querySelector('button[type="submit"]');
+ function selection(){const chosen=boxes.filter(box=>box.checked).length;if(count)count.textContent='('+chosen+')';if(submit)submit.disabled=chosen===0;if(selectPage){selectPage.checked=chosen===boxes.length&&chosen>0;selectPage.indeterminate=chosen>0&&chosen<boxes.length;}}
+ selectPage?.addEventListener('change',()=>{boxes.forEach(box=>{box.checked=selectPage.checked;});selection();});
+ boxes.forEach(box=>box.addEventListener('change',selection));selection();
+}

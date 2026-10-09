@@ -154,7 +154,7 @@ class ManagementTests(TestCase):
         self.assertEqual(self.client.post(f'/gestion/registro/{quote.pk}/convertir/order/').status_code,302)
         quote.refresh_from_db();self.assertEqual(quote.kind,'order');self.assertEqual(quote.status,'pending')
         self.client.post(f'/gestion/registro/{quote.pk}/entrega/', {'status':'delivered'})
-        self.assertEqual(self.client.post(f'/gestion/registro/{quote.pk}/convertir/sale/').status_code,302)
+        self.assertEqual(self.client.post(f'/gestion/registro/{quote.pk}/convertir/sale/').status_code,400)
         quote.refresh_from_db();self.assertEqual(quote.status,'sold')
         self.assertEqual(self.client.post(f'/gestion/registro/{quote.pk}/convertir/sale/').status_code,400)
         self.assertEqual(Entry.objects.count(),1)
