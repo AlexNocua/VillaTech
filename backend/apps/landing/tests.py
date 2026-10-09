@@ -150,3 +150,36 @@ class GmailPasswordTests(TestCase):
         with patch('apps.landing.notifications.get_connection',return_value=connection), patch.object(connection,'send_messages',return_value=1):
             self.assertEqual(dispatch_contact_emails(contact.pk),1)
         self.assertEqual(connection.password,'abcdefghijklmnop')
+
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',CONTACT_NOTIFICATION_EMAIL='team@example.com',PUBLIC_SITE_URL='https://example.com')
+class ContactValidationTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.data={'name':'Nombre conservado','phone':'+57 320 450 4722','email':'cliente@example.com','service':'otro','message':'Texto conservado','privacy_consent':'accepted'}
+    def test_json_field_errors_do_not_save(self):
+        self.data['email']='incorrecto';self.data['phone']='abc'
+        response=self.client.post('/submit',self.data,HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code,400)
+        self.assertIn('email',response.json()['errors']);self.assertIn('phone',response.json()['errors'])
+        self.assertFalse(Contact.objects.exists())
+    def test_html_error_retains_values(self):
+        self.data['email']='incorrecto'
+        response=self.client.post('/submit',self.data)
+        self.assertEqual(response.status_code,400)
+        self.assertContains(response,'Nombre conservado',status_code=400)
+        self.assertContains(response,'Texto conservado',status_code=400)
+        self.assertContains(response,'Introduce un correo válido',status_code=400)
+    def test_internal_error_is_generic_and_logged(self):
+        with patch('apps.landing.views.Contact.objects.create',side_effect=RuntimeError('private database detail')),self.assertLogs('apps.landing.views',level='ERROR'):
+            response=self.client.post('/submit',self.data,HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code,500)
+        self.assertNotIn('private database detail',response.content.decode())
+        self.assertEqual(response.json()['errors'],{})
+    def test_success_json(self):
+        with self.captureOnCommitCallbacks(execute=True):response=self.client.post('/submit',self.data,HTTP_ACCEPT='application/json')
+        self.assertTrue(response.json()['ok']);self.assertEqual(Contact.objects.count(),1)
+    def test_file_errors_attached_to_file_field(self):
+        self.data['reference_files']=SimpleUploadedFile('mal.exe',b'invalid')
+        response=self.client.post('/submit',self.data,HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code,400)
+        self.assertIn('reference_files',response.json()['errors'])

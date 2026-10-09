@@ -61,3 +61,9 @@ Después de actualizar el código ejecuta:
 python backend/manage.py migrate
 python backend/manage.py showmigrations landing management
 Reinicia el servicio y prueba el formulario. Las migraciones nuevas deben aparecer marcadas con [X]. Si persiste el mensaje, revisa y comparte el traceback del log que sigue a «Error al guardar solicitud y archivos de referencia», sin incluir credenciales. El mensaje genérico también puede corresponder a tablas/columnas pendientes de migrar o errores al guardar adjuntos.
+
+VALIDACIÓN DEL FORMULARIO SIN RECARGAR
+Los errores de datos se muestran junto al campo antes de enviar y también se validan en el servidor. Al enviar se usa una solicitud asíncrona: si falla, no se borra el formulario ni los archivos seleccionados; solo se limpia cuando el servidor confirma que se guardó. El primer campo incorrecto recibe el foco. Los detalles internos se mantienen en los logs y el cliente recibe un aviso general. No se almacenan borradores en el navegador: conservar datos se aplica mientras permanezca abierta la página.
+El máximo total de adjuntos queda unificado en 20 MB, 15 MB por archivo y 5 archivos.
+Sin JavaScript, el servidor conserva los campos de texto en la respuesta; los navegadores obligan a seleccionar nuevamente los archivos.
+Actualiza el código y los estáticos: python backend/manage.py collectstatic --noinput. Conserva las variables del servidor y aplica las migraciones pendientes con python backend/manage.py migrate.

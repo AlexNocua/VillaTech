@@ -56,7 +56,7 @@ class ManagementTests(TestCase):
         self.assertEqual(self.client.post('/gestion/ingresar/',{'username':'no','password':'no'}).status_code,429)
     def test_no_false_contact_success(self):
         response=self.client.post('/submit',{'name':'Incomplete'},follow=True)
-        self.assertContains(response,'Revisa los campos')
+        self.assertContains(response,'Revisa los campos',status_code=400)
 
     def test_private_product_publication(self):
         cat=CategoryProduct.objects.create(category_name='Privadas')

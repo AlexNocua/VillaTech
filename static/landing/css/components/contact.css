@@ -649,3 +649,4 @@
         width: 100%;
     }
 }
+.contact-field-error{color:#ffb4b4;font-size:.85rem;margin:.35rem 0 0}.contact-field-error:empty{display:none}.contact-form [aria-invalid="true"]{border-color:#e76b6b;outline-color:#e76b6b}[data-contact-feedback]{margin-bottom:1rem}

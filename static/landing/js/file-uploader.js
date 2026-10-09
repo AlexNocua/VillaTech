@@ -19,7 +19,7 @@
 
     var maximumFiles = 5;
     var maximumFileSize = 15 * 1024 * 1024;
-    var maximumTotalSize = 40 * 1024 * 1024;
+    var maximumTotalSize = 20 * 1024 * 1024;
 
     function getExtension(fileName) {
         var pieces = String(fileName).split(".");
@@ -196,7 +196,7 @@
 
                 showError(
                     "El tamaño total de los archivos no puede " +
-                    "superar los 40 MB."
+                    "superar los 20 MB."
                 );
             } else if (rejectedSizes.length) {
                 showError(
