@@ -5,7 +5,7 @@ La captura recibida muestra un rechazo CSRF (403), antes de ejecutar la aprobaci
 
 Ahora se añade el origen configurado en PUBLIC_SITE_URL y, cuando este corresponde al dominio de VillaTech por HTTPS, se permiten explícitamente https://villatechubate.com y https://www.villatechubate.com. No se permiten comodines ni orígenes enviados por el visitante. Se mantienen el token CSRF y las cookies seguras.
 
-La página solicita una cookie CSRF, evita caché y no expone el enlace en el encabezado Referer. GET solo muestra la cotización; POST con aceptación y CSRF válido confirma una sola vez. Si el formulario caduca o se bloquean cookies, aparece una página de VillaTech con un enlace para obtener un formulario nuevo, sin repetir el envío automáticamente.
+La página solicita una cookie CSRF, evita caché y limita el Referer al mismo origen (corregido en V10). GET solo muestra la cotización; POST con aceptación y CSRF válido confirma una sola vez. Si el formulario caduca o se bloquean cookies, aparece una página de VillaTech con un enlace para obtener un formulario nuevo, sin repetir el envío automáticamente.
 
 ## Vista pública
 Logo original, resumen de productos y cantidades, total COP, vigencia en hora de Colombia y aceptación explícita. Tras confirmar: estado actual, entrega estimada, abonos y saldo pendiente. Diseño adaptable a teléfonos. No se modifica la página principal ni sus toast ni las credenciales de correo.

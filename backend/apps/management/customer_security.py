@@ -9,7 +9,10 @@ def customer_headers(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         response = view(*args, **kwargs)
-        response['Referrer-Policy'] = 'no-referrer'
+        # Django checks Referer on HTTPS when Origin is absent.
+        # no-referrer breaks native forms; same-origin keeps the signed URL
+        # private from other sites while allowing our CSRF-protected POST.
+        response['Referrer-Policy'] = 'same-origin'
         response['X-Robots-Tag'] = 'noindex, nofollow'
         return response
     return wrapped

@@ -1,3 +1,6 @@
+## Corrección V10 — confirmación HTTPS y formulario de ayuda
+Lee primero `LEEME_CONFIRMACION_HTTPS_V10.md`. Esta actualización corrige la política Referer de V8/V9 sin desactivar CSRF.
+
 ## Actualización V9 — confirmación, reenvíos, depuración y cierre de ventas
 Lee primero `LEEME_ACTUALIZACION_V9.md`. Incluye las dos migraciones necesarias y las instrucciones del flujo nuevo.
 

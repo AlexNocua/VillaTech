@@ -220,3 +220,52 @@ class ConfirmationRevisionTests(TestCase):
         self.assertContains(response,'Tu información sigue aquí')
         self.assertContains(response,'Error al aprobar, por favor ayúdame.')
         self.assertEqual(CustomerIssue.objects.count(),0)
+
+    @override_settings(ALLOWED_HOSTS=['testserver','www.villatechubate.com'])
+    def test_https_native_form_without_origin_uses_same_site_referer(self):
+        entry=self.quote();token=self.send(entry)
+        path=reverse('management:customer_quote',args=[token])
+        public=Client(enforce_csrf_checks=True)
+        page=public.get(path,secure=True,HTTP_HOST='www.villatechubate.com')
+        self.assertEqual(page['Referrer-Policy'],'same-origin')
+        self.assertContains(page,'<meta name="referrer" content="same-origin">')
+        self.assertNotContains(page,'content="no-referrer"')
+        csrf=public.cookies['csrftoken'].value
+        # Reproduces HTTPS + valid cookie/token + policy that removed Referer.
+        rejected=public.post(path,{'accept':'yes','csrfmiddlewaretoken':csrf},secure=True,HTTP_HOST='www.villatechubate.com')
+        self.assertEqual(rejected.status_code,403)
+        entry.refresh_from_db();self.assertEqual(entry.kind,'quote')
+        # same-origin allows the native form to send this same-site Referer.
+        with self.captureOnCommitCallbacks(execute=True):
+            response=public.post(path,{'accept':'yes','csrfmiddlewaretoken':csrf},secure=True,
+                HTTP_HOST='www.villatechubate.com',HTTP_REFERER='https://www.villatechubate.com'+path)
+        self.assertEqual(response.status_code,302)
+        entry.refresh_from_db();self.assertEqual(entry.kind,'order')
+
+    @override_settings(ALLOWED_HOSTS=['testserver','www.villatechubate.com'])
+    def test_https_issue_form_without_origin_preserves_referrer_and_sends(self):
+        entry=self.quote();token=self.send(entry)
+        path=reverse('management:customer_issue',args=[token])
+        public=Client(enforce_csrf_checks=True)
+        page=public.get(path,secure=True,HTTP_HOST='www.villatechubate.com')
+        self.assertEqual(page['Referrer-Policy'],'same-origin')
+        self.assertContains(page,'<meta name="referrer" content="same-origin">')
+        with self.captureOnCommitCallbacks(execute=True):
+            response=public.post(path,{'comment':'No puedo confirmar la cotización.',
+                'csrfmiddlewaretoken':public.cookies['csrftoken'].value},secure=True,
+                HTTP_HOST='www.villatechubate.com',HTTP_REFERER='https://www.villatechubate.com'+path)
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(CustomerIssue.objects.count(),1)
+        self.assertEqual(mail.outbox[-1].to,['owner@example.com'])
+
+    @override_settings(ALLOWED_HOSTS=['testserver','www.villatechubate.com'])
+    def test_https_foreign_referer_is_rejected_with_valid_token(self):
+        entry=self.quote();token=self.send(entry)
+        path=reverse('management:customer_quote',args=[token])
+        public=Client(enforce_csrf_checks=True);public.get(path,secure=True,HTTP_HOST='www.villatechubate.com')
+        response=public.post(path,{'accept':'yes','csrfmiddlewaretoken':public.cookies['csrftoken'].value},
+            secure=True,HTTP_HOST='www.villatechubate.com',HTTP_REFERER='https://attacker.example/form')
+        self.assertEqual(response.status_code,403)
+        self.assertEqual(response['Referrer-Policy'],'same-origin')
+        self.assertContains(response,'<meta name="referrer" content="same-origin">',status_code=403)
+        entry.refresh_from_db();self.assertEqual(entry.kind,'quote')

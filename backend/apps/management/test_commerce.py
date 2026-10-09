@@ -143,7 +143,7 @@ class CommerceTests(TestCase):
    response=public.post(url,{'accept':'yes','csrfmiddlewaretoken':csrf},HTTP_HOST='internal.example',
        HTTP_X_FORWARDED_PROTO='https',HTTP_ORIGIN='https://www.villatechubate.com')
    self.assertEqual(response.status_code,302)
-   self.assertEqual(response['Referrer-Policy'],'no-referrer')
+   self.assertEqual(response['Referrer-Policy'],'same-origin')
    entry.refresh_from_db();self.assertEqual(entry.kind,'order');self.assertEqual(entry.paid_amount,0)
    receipt=public.get(url,HTTP_HOST='www.villatechubate.com',secure=True)
    self.assertContains(receipt,'Tu pedido está confirmado');self.assertContains(receipt,'Saldo pendiente')

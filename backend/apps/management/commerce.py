@@ -162,7 +162,7 @@ def customer_quote(request,token):
         logging.getLogger(__name__).exception('Error al confirmar cotización del cliente')
         error='No pudimos completar la confirmación. Puedes reportar lo ocurrido y solicitar un nuevo enlace.'
     response=render(request,'management/customer_quote.html',{'order':entry if not error else None,'error':error,'support_url':__import__('django.urls',fromlist=['reverse']).reverse('management:customer_issue',args=[token])})
-    response['Referrer-Policy']='no-referrer';response['X-Robots-Tag']='noindex, nofollow'
+    response['Referrer-Policy']='same-origin';response['X-Robots-Tag']='noindex, nofollow'
     return response
 
 
