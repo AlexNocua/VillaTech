@@ -7,7 +7,9 @@ from django.db import transaction
 from django.db.models import Q, F
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
+from .customer_security import customer_headers
 from django.views.decorators.cache import never_cache
 from django.utils import timezone
 from django import forms
@@ -129,6 +131,9 @@ def renew(request,pk):
     return redirect('management:workflow_detail',pk=pk)
 
 @never_cache
+@customer_headers
+@ensure_csrf_cookie
+@require_http_methods(["GET", "POST"])
 def customer_quote(request,token):
     # Mail scanners may follow GET links. Only an explicit CSRF-protected POST approves.
     expire_quotes()

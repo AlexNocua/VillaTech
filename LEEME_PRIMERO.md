@@ -1,3 +1,6 @@
+## Confirmación de clientes — actualización V8
+Consulta `LEEME_CONFIRMACION_V8.md` para el ajuste CSRF y la nueva vista pública.
+
 ## Gestión actualizada
 
 Para esta versión lee primero **LEEME_FLUJO_UNIFICADO_V7.md**. Reemplaza el flujo separado descrito en guías anteriores y explica la aprobación y el vencimiento de cotizaciones.

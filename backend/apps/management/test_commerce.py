@@ -128,3 +128,58 @@ class CommerceTests(TestCase):
   entry.quote_expires_at=timezone.now()-timedelta(microseconds=1);entry.save()
   with self.assertRaises(ValidationError):confirm_quotation(entry,'message')
   entry.refresh_from_db();self.assertEqual(entry.kind,'quote')
+ def test_secure_public_form_confirms_with_real_csrf_and_proxy(self):
+  import re
+  entry=self.quote();token=self.send(entry);url=reverse('management:customer_quote',args=[token])
+  public=Client(enforce_csrf_checks=True)
+  with override_settings(ALLOWED_HOSTS=['www.villatechubate.com','internal.example'],
+       CSRF_TRUSTED_ORIGINS=['https://www.villatechubate.com'],CSRF_COOKIE_SECURE=True,
+       SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO','https')):
+   response=public.get(url,HTTP_HOST='internal.example',HTTP_X_FORWARDED_PROTO='https')
+   self.assertIn('csrftoken',response.cookies)
+   self.assertTrue(response.cookies['csrftoken']['secure'])
+   self.assertIn('no-store',response['Cache-Control'])
+   csrf=re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"',response.content.decode()).group(1)
+   response=public.post(url,{'accept':'yes','csrfmiddlewaretoken':csrf},HTTP_HOST='internal.example',
+       HTTP_X_FORWARDED_PROTO='https',HTTP_ORIGIN='https://www.villatechubate.com')
+   self.assertEqual(response.status_code,302)
+   self.assertEqual(response['Referrer-Policy'],'no-referrer')
+   entry.refresh_from_db();self.assertEqual(entry.kind,'order');self.assertEqual(entry.paid_amount,0)
+   receipt=public.get(url,HTTP_HOST='www.villatechubate.com',secure=True)
+   self.assertContains(receipt,'Tu pedido está confirmado');self.assertContains(receipt,'Saldo pendiente')
+   self.assertEqual(receipt['X-Robots-Tag'],'noindex, nofollow')
+ def test_csrf_recovery_is_branded_and_never_approves(self):
+  entry=self.quote();token=self.send(entry);url=reverse('management:customer_quote',args=[token])
+  public=Client(enforce_csrf_checks=True)
+  response=public.post(url,{'accept':'yes'})
+  self.assertContains(response,'Actualiza tu confirmación',status_code=403)
+  self.assertContains(response,'Volver a revisar mi cotización',status_code=403)
+  self.assertNotContains(response,'csrfmiddlewaretoken',status_code=403)
+  self.assertIn('no-store',response['Cache-Control'])
+  entry.refresh_from_db();self.assertEqual(entry.kind,'quote')
+  self.assertEqual(public.get(url).status_code,200)
+ def test_untrusted_origin_is_still_rejected(self):
+  entry=self.quote();token=self.send(entry);url=reverse('management:customer_quote',args=[token])
+  public=Client(enforce_csrf_checks=True);public.get(url)
+  with override_settings(CSRF_TRUSTED_ORIGINS=['https://www.villatechubate.com']):
+   response=public.post(url,{'accept':'yes','csrfmiddlewaretoken':public.cookies['csrftoken'].value},HTTP_ORIGIN='https://attacker.example')
+  self.assertEqual(response.status_code,403)
+  entry.refresh_from_db();self.assertEqual(entry.kind,'quote')
+ def test_confirmation_disallows_other_methods(self):
+  entry=self.quote();token=self.send(entry)
+  response=Client().put(reverse('management:customer_quote',args=[token]))
+  self.assertEqual(response.status_code,405)
+
+ def test_stale_csrf_recovers_then_allows_explicit_confirmation(self):
+  entry=self.quote();token=self.send(entry);url=reverse('management:customer_quote',args=[token])
+  public=Client(enforce_csrf_checks=True);public.get(url)
+  stale=public.cookies['csrftoken'].value
+  from django.middleware.csrf import _get_new_csrf_string
+  public.cookies['csrftoken']=_get_new_csrf_string()
+  response=public.post(url,{'accept':'yes','csrfmiddlewaretoken':stale})
+  self.assertEqual(response.status_code,403)
+  entry.refresh_from_db();self.assertEqual(entry.kind,'quote')
+  public.get(url)
+  response=public.post(url,{'accept':'yes','csrfmiddlewaretoken':public.cookies['csrftoken'].value})
+  self.assertEqual(response.status_code,302)
+  entry.refresh_from_db();self.assertEqual(entry.kind,'order')

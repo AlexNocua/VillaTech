@@ -251,6 +251,20 @@ if IS_RAILWAY:
 # Customer confirmation + private team notification.
 CONTACT_NOTIFICATION_EMAIL = os.environ.get('CONTACT_NOTIFICATION_EMAIL', EMAIL_HOST_USER)
 PUBLIC_SITE_URL = os.environ.get('PUBLIC_SITE_URL', 'https://' + os.environ['RAILWAY_PUBLIC_DOMAIN'] if os.environ.get('RAILWAY_PUBLIC_DOMAIN') else 'http://localhost:8000')
+# The customer-facing domain can differ from Railway's internal host.
+# Trust only the explicitly configured public origin; never a request header.
+from urllib.parse import urlsplit
+_public_url = urlsplit(PUBLIC_SITE_URL)
+if _public_url.scheme in ('https', 'http') and _public_url.netloc and not _public_url.username:
+    _public_origin = f'{_public_url.scheme}://{_public_url.netloc}'
+    if _public_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_public_origin)
+    # VillaTech uses both its apex and www domain at the TLS edge.
+    if _public_url.scheme == 'https' and _public_url.hostname in ('villatechubate.com', 'www.villatechubate.com'):
+        for _origin in ('https://villatechubate.com', 'https://www.villatechubate.com'):
+            if _origin not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS.append(_origin)
+CSRF_FAILURE_VIEW = 'apps.management.customer_security.csrf_failure'
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'smtp').lower()
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', {
