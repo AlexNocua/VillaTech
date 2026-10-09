@@ -36,6 +36,8 @@ class ContactWorkflowTests(TestCase):
         self.assertIsNone(entry.created_by_id)
         self.assertEqual(entry.contact,Contact.objects.get())
         self.assertEqual(entry.customer_phone,self.data['phone'])
+        self.assertEqual(entry.contact.telephone,self.data['phone'])
+        self.assertEqual(Contact._meta.get_field('telephone').get_internal_type(),'CharField')
         self.assertEqual(len(mail.outbox),2)
         self.assertEqual(mail.outbox[0].to,['client@example.com'])
         self.assertEqual(mail.outbox[1].to,['team@example.com'])

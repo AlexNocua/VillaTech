@@ -47,9 +47,9 @@ def contact_form_action(request):
             raise ValidationError('Máximo 5 archivos y 20 MB en total.')
         for file in files: validate_reference(file)
         data=form.cleaned_data
-        phone=''.join(c for c in data['phone'] if c.isdigit())
+        phone=data['phone'].strip()
         with transaction.atomic():
-            contact=Contact.objects.create(client_name=data['name'],telephone=int(phone),email=data['email'],service=data['service'],message=data['message'],file='')
+            contact=Contact.objects.create(client_name=data['name'],telephone=phone,email=data['email'],service=data['service'],message=data['message'],file='')
             for file in files: ContactAttachment.objects.create(contact=contact,file=file)
             from apps.management.models import Entry
             from .notifications import queue_contact_emails, safely_dispatch

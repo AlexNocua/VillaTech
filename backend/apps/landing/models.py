@@ -65,7 +65,7 @@ class Product(models.Model):
 
 class Contact (models.Model):
     client_name=models.CharField(max_length=255)
-    telephone=models.IntegerField(blank=False)
+    telephone=models.CharField('Teléfono',max_length=25,blank=False)
     email=models.EmailField(blank=True)
     service=models.CharField(max_length=50)
     message=models.CharField(max_length=500)

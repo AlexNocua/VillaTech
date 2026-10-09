@@ -54,3 +54,10 @@ El stock inicial existente se conserva; el historial de movimientos comienza con
 
 VALIDACIÓN
 Se agregaron pruebas de pedidos sin pago, conversión sin duplicación, abonos parciales, rechazo de sobrepagos, creación interna idempotente, entradas/salidas de inventario y normalización de contraseña Gmail.
+
+CORRECCIÓN DEL FORMULARIO — TELÉFONO
+El teléfono se almacenaba como IntegerField, que en PostgreSQL admite hasta 2147483647. Un celular colombiano supera ese valor. Ahora se almacena como texto y conserva el prefijo internacional. La migración landing 0009 convierte los registros existentes sin eliminarlos.
+Después de actualizar el código ejecuta:
+python backend/manage.py migrate
+python backend/manage.py showmigrations landing management
+Reinicia el servicio y prueba el formulario. Las migraciones nuevas deben aparecer marcadas con [X]. Si persiste el mensaje, revisa y comparte el traceback del log que sigue a «Error al guardar solicitud y archivos de referencia», sin incluir credenciales. El mensaje genérico también puede corresponder a tablas/columnas pendientes de migrar o errores al guardar adjuntos.
