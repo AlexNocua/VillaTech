@@ -208,3 +208,39 @@ class MailDiagnosticTests(TestCase):
         mocked.return_value.send_messages.assert_not_called()
         self.assertEqual(mocked.return_value.password,'abcdefgh')
         self.assertNotIn('abcdefgh',output.getvalue())
+
+@override_settings(GMAIL_CLIENT_ID='test-client',GMAIL_CLIENT_SECRET='test-secret',GMAIL_REFRESH_TOKEN='test-refresh',EMAIL_TIMEOUT=10)
+class GmailAPITransportTests(TestCase):
+    @patch('apps.landing.gmail_backend.urlopen')
+    def test_refresh_and_send_preserve_mime(self,opened):
+        import base64
+        from email import message_from_bytes
+        from django.core.mail import EmailMultiAlternatives
+        from .gmail_backend import GmailAPIEmailBackend
+        responses=[]
+        for value in [{'access_token':'test-access'},{'id':'accepted'}]:
+            mock=MagicMock();mock.__enter__.return_value.read.return_value=json.dumps(value).encode();responses.append(mock)
+        opened.side_effect=responses
+        message=EmailMultiAlternatives('Asunto','Texto','team@example.com',['client@example.com'],reply_to=['reply@example.com'])
+        message.attach_alternative('<p>HTML</p>','text/html')
+        backend=GmailAPIEmailBackend()
+        self.assertEqual(backend.send_messages([message]),1)
+        request=opened.call_args.args[0]
+        self.assertEqual(request.full_url,'https://gmail.googleapis.com/gmail/v1/users/me/messages/send')
+        mime=message_from_bytes(base64.urlsafe_b64decode(json.loads(request.data)['raw']))
+        self.assertEqual(mime['Reply-To'],'reply@example.com')
+        self.assertEqual(mime['To'],'client@example.com')
+        self.assertTrue(mime.is_multipart())
+        backend.close();self.assertIsNone(backend.access_token)
+    @patch('apps.landing.gmail_backend.urlopen')
+    def test_google_error_does_not_leak_secrets(self,opened):
+        from urllib.error import HTTPError
+        from .gmail_backend import GmailAPIEmailBackend,GmailAPIError
+        opened.side_effect=HTTPError('https://oauth2.googleapis.com/token',400,'private provider data',{},None)
+        with self.assertRaises(GmailAPIError) as caught:GmailAPIEmailBackend().open()
+        self.assertNotIn('private provider data',str(caught.exception))
+        self.assertIn('HTTP 400',str(caught.exception))
+    @override_settings(GMAIL_REFRESH_TOKEN='')
+    def test_missing_configuration_is_clear(self):
+        from .gmail_backend import GmailAPIEmailBackend,GmailAPIError
+        with self.assertRaises(GmailAPIError):GmailAPIEmailBackend().open()

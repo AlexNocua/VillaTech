@@ -253,4 +253,10 @@ CONTACT_NOTIFICATION_EMAIL = os.environ.get('CONTACT_NOTIFICATION_EMAIL', EMAIL_
 PUBLIC_SITE_URL = os.environ.get('PUBLIC_SITE_URL', 'https://' + os.environ['RAILWAY_PUBLIC_DOMAIN'] if os.environ.get('RAILWAY_PUBLIC_DOMAIN') else 'http://localhost:8000')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', 'smtp').lower()
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'apps.landing.email_backend.ResendEmailBackend' if EMAIL_PROVIDER == 'resend' else 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', {
+    'gmail_api':'apps.landing.gmail_backend.GmailAPIEmailBackend',
+    'resend':'apps.landing.email_backend.ResendEmailBackend',
+}.get(EMAIL_PROVIDER, 'django.core.mail.backends.smtp.EmailBackend'))
+GMAIL_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID', '')
+GMAIL_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET', '')
+GMAIL_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN', '')

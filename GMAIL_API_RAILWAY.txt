@@ -1,0 +1,60 @@
+VILLATECH — GMAIL POR HTTPS EN RAILWAY
+
+El código está preparado para enviar las confirmaciones al cliente y a VillaTech con la API de Gmail, conservando HTML y Reply-To. No usa SMTP ni Resend. Para activarlo debes autorizar la cuenta remitente de Google.
+
+1. CONFIGURAR GOOGLE
+Abre https://console.cloud.google.com/ con la cuenta villatechingenieria@gmail.com.
+Crea o selecciona un proyecto y habilita Gmail API en APIs y servicios > Biblioteca.
+Configura Google Auth Platform / pantalla de consentimiento OAuth: nombre VillaTech, correo de soporte y correo del desarrollador. Para una cuenta Gmail personal el público es externo.
+Para probar en estado Testing, agrega villatechingenieria@gmail.com como usuario de prueba.
+En Clientes / Credenciales crea un ID de cliente OAuth de tipo Aplicación de escritorio. Descarga su JSON y guárdalo localmente como client_secret_villatech.json. No lo subas al repositorio ni lo compartas.
+El permiso solicitado es únicamente https://www.googleapis.com/auth/gmail.send: enviar correo. No permite leer tu bandeja.
+
+2. AUTORIZAR EN TU COMPUTADOR
+Desde la carpeta villatechdev, con tu entorno virtual activado:
+python -m pip install -r tools/requirements-gmail-setup.txt
+python tools/authorize_gmail.py --client client_secret_villatech.json
+Se abrirá el navegador. Elige exclusivamente villatechingenieria@gmail.com, comprueba el nombre VillaTech y concede el permiso de envío a la aplicación que acabas de crear.
+El script escribe gmail-railway.env en tu computador sin imprimir los secretos. No envía ningún correo.
+
+3. VARIABLES DE RAILWAY
+Abre Variables del servicio Django. Copia las variables del archivo gmail-railway.env al editor de variables de Railway:
+EMAIL_PROVIDER=gmail_api
+EMAIL_BACKEND=apps.landing.gmail_backend.GmailAPIEmailBackend
+GMAIL_CLIENT_ID=<valor generado>
+GMAIL_CLIENT_SECRET=<valor generado>
+GMAIL_REFRESH_TOKEN=<valor generado>
+Mantén también:
+EMAIL_HOST_USER=villatechingenieria@gmail.com
+DEFAULT_FROM_EMAIL=villatechingenieria@gmail.com
+CONTACT_NOTIFICATION_EMAIL=villatechingenieria@gmail.com
+PUBLIC_SITE_URL=<tu URL pública actual>
+No cambies tus variables de base de datos, dominio o almacenamiento.
+EMAIL_HOST_PASSWORD ya no se usa cuando el transporte activo es Gmail API.
+Mantén el remitente igual a la cuenta autorizada. Esta autorización se configura para el negocio, no para cada visitante del formulario.
+No compartas el archivo gmail-railway.env por chat. Conserva los secretos protegidos; evita subirlos a Git.
+
+4. DESPLEGAR Y COMPROBAR
+Despliega el código y aplica las migraciones pendientes.
+python backend/manage.py migrate
+python backend/manage.py collectstatic --noinput
+En la consola del servicio desplegado:
+python backend/manage.py check_email_connection
+Debe decir: Conexión HTTPS y autorización Gmail correctas. No se envió ningún correo.
+Esta prueba comprueba acceso a OAuth; la aceptación de un mensaje se comprueba con una solicitud real del formulario.
+Después prueba el formulario con tu propio correo. En Gestión abre la solicitud y comprueba ambas notificaciones.
+Para recuperar mensajes pendientes anteriores:
+python backend/manage.py retry_contact_emails
+El reintento envía correos; úsalo cuando la autorización esté lista. No repite los ya marcados como enviados. Si un envío previo quedó sin confirmar por una interrupción, verifica Gmail antes de reintentar para evitar duplicados.
+
+5. EVITAR QUE EL ACCESO CADUQUE A LOS 7 DÍAS
+En una aplicación OAuth externa en estado Testing, los tokens con permisos Gmail vencen a los 7 días. Para uso continuo, configura el público como In production y vuelve a autorizar; genera otro archivo usando --output gmail-railway-produccion.env y actualiza las variables correspondientes. Atiende cualquier requisito de consentimiento o verificación que Google muestre para tu aplicación.
+Publicar el consentimiento OAuth no publica tu proyecto Django. Los tokens también pueden dejar de servir si revocas acceso o cambias la contraseña de Google; entonces vuelve a autorizar.
+
+FUENTES OFICIALES
+https://developers.google.com/workspace/gmail/api/guides/sending
+https://developers.google.com/workspace/gmail/api/auth/scopes
+https://developers.google.com/identity/protocols/oauth2
+https://docs.railway.com/networking/outbound-networking
+
+La entrega se validó con respuestas simuladas de Google. No se autorizó tu cuenta ni se enviaron correos reales desde este entorno. La activación real requiere completar los pasos anteriores.

@@ -7,3 +7,7 @@ staticfiles/
 backups/
 __pycache__/
 .venv/
+
+# Credenciales OAuth locales
+gmail-railway*.env
+client_secret*.json

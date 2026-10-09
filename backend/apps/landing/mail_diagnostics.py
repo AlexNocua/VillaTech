@@ -5,6 +5,8 @@ import smtplib
 import ssl
 
 def mail_error_summary(error):
+    from .gmail_backend import GmailAPIError
+    if isinstance(error,GmailAPIError):return str(error)
     if isinstance(error,smtplib.SMTPAuthenticationError):
         return 'Gmail rechazó el acceso. Revisa la cuenta y la contraseña de aplicación.'
     if isinstance(error,smtplib.SMTPRecipientsRefused):

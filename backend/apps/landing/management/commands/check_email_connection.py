@@ -6,6 +6,13 @@ from apps.landing.mail_diagnostics import mail_error_summary, safe_error_code
 class Command(BaseCommand):
     help='Comprueba el acceso al servidor SMTP sin enviar mensajes ni mostrar credenciales.'
     def handle(self,*args,**options):
+        if settings.EMAIL_BACKEND == 'apps.landing.gmail_backend.GmailAPIEmailBackend':
+            connection=get_connection(fail_silently=False)
+            try:connection.open()
+            except Exception as error:raise CommandError(mail_error_summary(error)) from None
+            finally:connection.close()
+            self.stdout.write(self.style.SUCCESS('Conexión HTTPS y autorización Gmail correctas. No se envió ningún correo.'))
+            return
         if settings.EMAIL_BACKEND != 'django.core.mail.backends.smtp.EmailBackend':
             raise CommandError('El transporte activo no es SMTP. Revisa EMAIL_PROVIDER y EMAIL_BACKEND.')
         if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
