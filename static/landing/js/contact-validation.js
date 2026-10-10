@@ -28,9 +28,9 @@
       if (name === 'reference_files') {
         const files = Array.from(field.files);
         if (files.length > 5) message = 'Selecciona como máximo 5 archivos.';
-        else if (files.reduce((sum,file)=>sum+file.size,0)>20*1024*1024) message = 'Los archivos no pueden superar 20 MB en total.';
-        else if (files.some(file=>file.size>15*1024*1024)) message = 'Cada archivo debe pesar máximo 15 MB.';
-        else if (files.some(file=>!(/\.(stl|obj|3mf|step|stp|pdf|png|jpe?g|webp)$/i.test(file.name)))) message = 'Formato no permitido. Usa STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG o WEBP.';
+        else if (files.reduce((sum,file)=>sum+file.size,0)>200*1024*1024) message = 'Los archivos no pueden superar 200 MB en total.';
+        else if (files.some(file=>file.size>100*1024*1024)) message = 'Cada archivo debe pesar máximo 100 MB.';
+        else if (files.some(file=>!(/\.(stl|obj|3mf|step|stp|pdf|png|jpe?g|webp|mp4|webm|mov)$/i.test(file.name)))) message = 'Formato no permitido. Usa STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG, WEBP, MP4, WEBM o MOV.';
       } else if (name === 'privacy_consent') {
         if (!field.checked) message = 'Acepta el aviso de privacidad para enviar la solicitud.';
       } else if (!value) {

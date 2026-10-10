@@ -21,3 +21,10 @@ def validate_image(file):
         raise ValidationError('Carga una imagen PNG, JPG o WEBP válida.')
     finally:
         file.seek(0)
+
+
+def validate_print_model(file):
+    if file.size > 100 * 1024 * 1024:
+        raise ValidationError('El modelo no puede superar 100 MB.')
+    if Path(file.name).suffix.lower() not in {'.stl','.obj','.3mf','.step','.stp','.gcode'}:
+        raise ValidationError('Usa un modelo STL, OBJ, 3MF, STEP/STP o GCODE.')

@@ -93,7 +93,7 @@
               <span>Opcional</span>
             </div>
 
-            <input class="upload-field__input sr-only" id="contact-files" name="reference_files" type="file" accept=".stl,.obj,.3mf,.step,.stp,.pdf,.png,.jpg,.jpeg,.webp" aria-describedby="contact-files-help" data-file-input multiple />
+            <input class="upload-field__input sr-only" id="contact-files" name="reference_files" type="file" accept=".stl,.obj,.3mf,.step,.stp,.pdf,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov" aria-describedby="contact-files-help" data-file-input multiple />
 
             <label class="upload-field__dropzone" for="contact-files" data-file-dropzone>
               <span class="upload-field__icon" aria-hidden="true">
@@ -125,7 +125,7 @@
             <p class="contact-field-error" id="contact-files-error" data-contact-error="reference_files" role="alert"></p>
             <p class="upload-field__error" data-file-error role="alert" hidden></p>
 
-            <p class="upload-field__help" id="contact-files-help">Hasta 5 archivos. Máximo 15 MB por archivo y 20 MB en total. Formatos: STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG y WEBP.</p>
+            <p class="upload-field__help" id="contact-files-help">Hasta 5 archivos. Máximo 100 MB por archivo y 200 MB en total. Formatos: STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG, WEBP, MP4, WEBM y MOV.</p>
           </div>
         </div>
 
@@ -140,4 +140,4 @@
   </div>
 </section>
 
-<script src="{% static 'landing/js/contact-validation.js' %}" defer></script>
+<script src="{% static 'landing/js/contact-validation.js' %}?v=11" defer></script>

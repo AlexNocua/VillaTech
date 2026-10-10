@@ -69,7 +69,7 @@ class ContactWorkflowTests(TestCase):
         self.assertEqual(self.client.get(path).status_code,302)
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(path).status_code,200)
-        self.assertContains(self.client.get(reverse('management:quote_detail',args=[entry.pk])),'Descargar referencia')
+        self.assertContains(self.client.get(reverse('management:quote_detail',args=[entry.pk])),'Descargar archivo')
         self.assertEqual(self.client.get(reverse('management:quote_pdf',args=[entry.pk])).status_code,400)
         self.assertEqual(self.client.post(reverse('management:transition',args=[entry.pk,'order'])).status_code,400)
     def test_filters_and_quote_order_transition_preserve_source_and_contact(self):

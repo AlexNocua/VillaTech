@@ -83,9 +83,17 @@ class ExpenseForm(forms.ModelForm):
         labels={'title':'¿En qué gastaste?','amount':'Valor del gasto (COP)'}
 
 class ProductForm(forms.ModelForm):
+    def save(self, commit=True):
+        from pathlib import Path
+        uploaded=self.cleaned_data.get('print_model')
+        if uploaded and hasattr(uploaded,'content_type'):
+            self.instance.print_model_original_name=Path(uploaded.name).name[:255]
+        return super().save(commit=commit)
     class Meta:
         model = Product
-        fields = ['name','description','mtm_category','price','image','image_url','is_active','is_public']
+        fields = ['name','description','mtm_category','price','image','image_url','print_model','is_active','is_public']
+        widgets={'print_model':forms.FileInput(attrs={'accept':'.stl,.obj,.3mf,.step,.stp,.gcode'})}
+        help_texts={'print_model':'Hasta 100 MB. STL, OBJ, 3MF, STEP/STP o GCODE. Si no eliges otro archivo, se conserva el modelo guardado.'}
 
 class VariantForm(forms.ModelForm):
     class Meta:

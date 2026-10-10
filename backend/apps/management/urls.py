@@ -17,6 +17,7 @@ urlpatterns=[
  path('confirmar-cotizacion/<str:token>/',commerce.customer_quote,name='customer_quote'),
  path('registro/<int:pk>/entrega/',views.update_delivery,name='update_delivery'),
  path('registro/<int:pk>/reintentar-correos/',views.retry_order_notifications,name='retry_order_notifications'),
+ path('productos/<int:pk>/modelo/',views.product_model,name='product_model'),
  path('productos/<int:pk>/existencias/',views.adjust_stock,name='adjust_stock'),
  path('ventas/',views.entry_list,{'section':'sales'},name='sales'),
  path('gastos/',views.expenses,name='expenses'),

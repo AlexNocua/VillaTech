@@ -1,5 +1,5 @@
 from django.db import models
-from .validators import image_path, validate_image
+from .validators import image_path, validate_image, private_path, validate_print_model
 
 
 class CategoryProduct(models.Model):
@@ -37,6 +37,8 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveBigIntegerField(default=0)
     image = models.ImageField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
+    print_model = models.FileField('Modelo de impresión', upload_to=private_path, blank=True, validators=[validate_print_model])
+    print_model_original_name = models.CharField(max_length=255, blank=True)
     image_url = models.URLField(max_length=500, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -108,5 +110,18 @@ class ContactEmail(models.Model):
 class ContactAttachment(models.Model):
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='attachments')
     file = models.FileField(upload_to=private_path)
+    original_name = models.CharField(max_length=255, blank=True)
+    @property
+    def display_name(self):
+        from pathlib import Path
+        return self.original_name or Path(self.file.name).name
+    @property
+    def media_kind(self):
+        from pathlib import Path
+        ext = Path(self.file.name).suffix.lower()
+        if ext in ('.png','.jpg','.jpeg','.webp'): return 'image'
+        if ext in ('.mp4','.webm','.mov'): return 'video'
+        return 'document'
+
 
 

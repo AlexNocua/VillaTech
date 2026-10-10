@@ -18,6 +18,16 @@ class ContactForm(forms.Form):
         return phone
 
 def validate_reference(file):
-    if file.size>15*1024*1024: raise ValidationError('Cada archivo debe pesar máximo 15 MB.')
-    if Path(file.name).suffix.lower() not in {'.stl','.obj','.3mf','.step','.stp','.pdf','.png','.jpg','.jpeg','.webp'}:
+    if file.size>100*1024*1024: raise ValidationError('Cada archivo debe pesar máximo 100 MB.')
+    if Path(file.name).suffix.lower() not in {'.stl','.obj','.3mf','.step','.stp','.pdf','.png','.jpg','.jpeg','.webp','.mp4','.webm','.mov'}:
         raise ValidationError('Formato de archivo no permitido.')
+
+    extension = Path(file.name).suffix.lower()
+    if extension in {'.mp4','.mov','.webm'}:
+        try:
+            header = file.read(32)
+            valid = header.startswith(b'\x1a\x45\xdf\xa3') if extension == '.webm' else header[4:8] == b'ftyp'
+            if not valid:
+                raise ValidationError('Carga un video MP4, MOV o WEBM válido.')
+        finally:
+            file.seek(0)

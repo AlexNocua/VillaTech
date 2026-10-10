@@ -14,12 +14,12 @@
         "png",
         "jpg",
         "jpeg",
-        "webp"
+        "webp", "mp4", "webm", "mov"
     ]);
 
     var maximumFiles = 5;
-    var maximumFileSize = 15 * 1024 * 1024;
-    var maximumTotalSize = 20 * 1024 * 1024;
+    var maximumFileSize = 100 * 1024 * 1024;
+    var maximumTotalSize = 200 * 1024 * 1024;
 
     function getExtension(fileName) {
         var pieces = String(fileName).split(".");
@@ -196,11 +196,11 @@
 
                 showError(
                     "El tamaño total de los archivos no puede " +
-                    "superar los 20 MB."
+                    "superar los 200 MB."
                 );
             } else if (rejectedSizes.length) {
                 showError(
-                    "Algunos archivos superan el límite de 15 MB: " +
+                    "Algunos archivos superan el límite de 100 MB: " +
                     rejectedSizes.join(", ")
                 );
             } else if (rejectedFormats.length) {

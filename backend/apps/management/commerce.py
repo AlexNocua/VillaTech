@@ -25,13 +25,17 @@ class ConfirmationForm(ApprovalForm):
         help_text='Ejemplo: WhatsApp del cliente o respuesta de correo del 09 de octubre.')
 
 def detail_context(entry):
-    return {'order':entry,'delivery_form':DeliveryForm(initial={'estimated_delivery_date':entry.estimated_delivery_date,'status':entry.status}),'confirmation_form':ConfirmationForm(initial={'estimated_delivery_date':entry.estimated_delivery_date}),
-        'share_url':approval_url(entry) if entry.kind=='quote' and entry.status=='sent' else ''}
+    from pathlib import Path
+    legacy_name=entry.contact.file.name if entry.contact_id and entry.contact.file else ''
+    ext=Path(legacy_name).suffix.lower()
+    legacy_kind='image' if ext in ('.jpg','.jpeg','.png','.webp') else 'video' if ext in ('.mp4','.webm','.mov') else 'document'
+    return {'legacy_reference_kind':legacy_kind, 'legacy_reference_name':Path(legacy_name).name, ** {'order':entry,'delivery_form':DeliveryForm(initial={'estimated_delivery_date':entry.estimated_delivery_date,'status':entry.status}),'confirmation_form':ConfirmationForm(initial={'estimated_delivery_date':entry.estimated_delivery_date}),
+        'share_url':approval_url(entry) if entry.kind=='quote' and entry.status=='sent' else ''}}
 
 @staff_only
 def board(request):
     expire_quotes()
-    entries=Entry.objects.filter(kind__in=['quote','order','sale']).prefetch_related('items')
+    entries=Entry.objects.filter(kind__in=['quote','order','sale']).select_related('contact').prefetch_related('items','contact__attachments')
     search=request.GET.get('q','').strip()[:150];stage=request.GET.get('stage','all')
     if search:entries=entries.filter(Q(title__icontains=search)|Q(customer__icontains=search)|Q(customer_email__icontains=search))
     stages={'quotes':Q(kind='quote',status__in=['draft','quoted']), 'awaiting':Q(kind='quote',status='sent'),
@@ -54,7 +58,7 @@ def board(request):
 @staff_only
 def detail(request,pk):
     expire_quotes()
-    entry=get_object_or_404(Entry.objects.prefetch_related('items','payments','activities','emails','customer_issues'),pk=pk,kind__in=['quote','order','sale'])
+    entry=get_object_or_404(Entry.objects.prefetch_related('items','payments','activities','emails','customer_issues','contact__attachments'),pk=pk,kind__in=['quote','order','sale'])
     return render(request,'management/workflow_detail.html',detail_context(entry))
 
 @staff_only

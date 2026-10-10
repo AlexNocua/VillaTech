@@ -196,7 +196,7 @@ def products(request,pk=None):
         instance=get_object_or_404(Product,pk=pk)
         form=ProductForm(request.POST or None,request.FILES or None,instance=instance)
         if request.method=='POST' and form.is_valid():form.save();return redirect('management:products')
-        return render(request,'management/form.html',{'form':form,'title':'Editar producto interno / publicación'})
+        return render(request,'management/form.html',{'form':form,'product_record':instance,'title':'Editar producto interno / publicación'})
     query = request.GET.get('q','').strip()[:150]
     products = Product.objects.select_related('mtm_category').all()
     if query:
@@ -420,11 +420,9 @@ def entry_list(request, section='orders'):
 def contact_attachment(request,pk):
     from apps.landing.models import ContactAttachment
     attachment = get_object_or_404(ContactAttachment,pk=pk)
-    response = FileResponse(attachment.file.open('rb'),as_attachment=True,filename=Path(attachment.file.name).name,
-        content_type='application/octet-stream')
-    response['Cache-Control'] = 'private, no-store'
-    response['X-Content-Type-Options'] = 'nosniff'
-    return response
+    from .reference_media import reference_response
+    return reference_response(request,attachment.file,attachment.display_name)
+
 
 @staff_only
 @require_POST
@@ -442,11 +440,9 @@ def legacy_contact_file(request,pk):
     from django.http import Http404
     contact = get_object_or_404(Contact,pk=pk)
     if not contact.file: raise Http404
-    response = FileResponse(contact.file.open('rb'),as_attachment=True,
-        filename=Path(contact.file.name).name,content_type='application/octet-stream')
-    response['Cache-Control'] = 'private, no-store'
-    response['X-Content-Type-Options'] = 'nosniff'
-    return response
+    from .reference_media import reference_response
+    return reference_response(request,contact.file,Path(contact.file.name).name)
+
 
 @staff_only
 @require_POST
@@ -510,3 +506,16 @@ def adjust_stock(request,pk):
             StockMovement.objects.create(product=product,quantity=quantity,reason=reason,created_by=request.user)
             messages.success(request,'Existencias ajustadas y movimiento registrado.')
     return redirect('management:products')
+
+
+@staff_only
+def product_model(request,pk):
+    from apps.landing.models import Product
+    from django.http import Http404
+    product=get_object_or_404(Product,pk=pk)
+    if not product.print_model:raise Http404
+    response=FileResponse(product.print_model.open('rb'),as_attachment=True,
+        filename=product.print_model_original_name or Path(product.print_model.name).name,content_type='application/octet-stream')
+    response['Cache-Control']='private, no-store'
+    response['X-Content-Type-Options']='nosniff'
+    return response

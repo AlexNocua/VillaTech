@@ -1,3 +1,6 @@
+## V11 — videos, archivos de referencia y modelos de impresión
+Consulta primero `LEEME_ARCHIVOS_Y_MODELOS_V11.md`. Incluye las migraciones y los límites nuevos.
+
 ## Corrección V10 — confirmación HTTPS y formulario de ayuda
 Lee primero `LEEME_CONFIRMACION_HTTPS_V10.md`. Esta actualización corrige la política Referer de V8/V9 sin desactivar CSRF.
 
