@@ -6,11 +6,14 @@ import zipfile
 import posixpath
 from xml.etree import ElementTree as ET
 from pathlib import Path
+from array import array
 from django.core.exceptions import ValidationError
 
 MAX_FILE=100*1024*1024
-MAX_XML=16*1024*1024
-MAX_TRIANGLES=2000000
+MAX_XML=512*1024*1024
+MAX_REFERENCED_XML=1024*1024*1024
+MAX_GEOMETRY_BYTES=192*1024*1024
+MAX_TRIANGLES=5000000
 SAMPLE=12000
 
 def mesh_preview(field):
@@ -72,25 +75,26 @@ def three_mf_triangles(file):
         return point
     with zipfile.ZipFile(file) as archive:
         infos=archive.infolist()
-        if len(infos)>2000 or sum(i.file_size for i in infos)>64*1024*1024:raise ValidationError('Paquete 3MF demasiado grande para vista previa.')
-        names={i.filename for i in infos};models={};expansions=0
+        if len(infos)>20000:raise ValidationError('El paquete contiene demasiados archivos para esta vista.')
+        names={i.filename for i in infos};models={};expansions=0;xml_bytes=0;geometry_budget=[0]
         root_name=next((n for n in names if n.lower()=='3d/3dmodel.model'),None)
         if not root_name:raise ValidationError('No se encontró la geometría principal del 3MF.')
         def load(name):
+            nonlocal xml_bytes
             if name not in names:raise ValidationError('Falta una pieza referenciada del 3MF.')
             if name not in models:
                 info=archive.getinfo(name)
-                if info.file_size>MAX_XML:raise ValidationError('Geometría XML demasiado grande para vista previa.')
-                xml=archive.read(name)
-                if b'<!DOCTYPE' in xml.upper() or b'<!ENTITY' in xml.upper():raise ValidationError('XML 3MF no permitido.')
-                root=ET.fromstring(xml)
-                unit=root.attrib.get('unit','millimeter')
+                if info.file_size>MAX_XML or xml_bytes+info.file_size>MAX_REFERENCED_XML:
+                    raise ValidationError('La geometría supera el límite de lectura de esta vista. Descarga el original.')
+                xml_bytes+=info.file_size
+                with archive.open(name) as stream:
+                    root=parse_3mf_xml(stream,geometry_budget)
+                unit=root['unit']
                 if unit not in factors:raise ValidationError('Unidad 3MF no reconocida.')
-                objects={o.attrib['id']:o for o in root.findall('./{*}resources/{*}object')}
-                models[name]=(root,objects,factors[unit])
+                models[name]=(root,root['objects'],factors[unit])
             return models[name]
         def resolve(element,current):
-            path=next((value for key,value in element.attrib.items() if key.endswith('}path')),None)
+            path=next((value for key,value in element.items() if key.endswith('}path')),None)
             if not path:return current
             result=path.lstrip('/') if path.startswith('/') else posixpath.normpath(posixpath.join(posixpath.dirname(current),path))
             if result.startswith('../') or '\\' in result:raise ValidationError('Referencia 3MF no válida.')
@@ -104,15 +108,70 @@ def three_mf_triangles(file):
             if part_factor!=factor:raise ValidationError('Unidades diferentes entre piezas; descarga el archivo para abrirlo en el laminador.')
             obj=resources.get(object_id)
             if obj is None:raise ValidationError('Objeto 3MF no encontrado.')
-            mesh=obj.find('./{*}mesh')
-            if mesh is not None:
-                vertices=[[float(v.attrib[a]) for a in ('x','y','z')] for v in mesh.findall('./{*}vertices/{*}vertex')]
-                for tri in mesh.findall('./{*}triangles/{*}triangle'):
-                    indices=[int(tri.attrib[a]) for a in ('v1','v2','v3')]
-                    if any(i<0 or i>=len(vertices) for i in indices):raise ValidationError('Índice de triángulo no válido.')
-                    yield [[v*factor for v in transform(vertices[i],transforms)] for i in indices]
-            for component in obj.findall('./{*}components/{*}component'):
-                yield from expand(resolve(component,name),component.attrib['objectid'],[matrix(component.attrib.get('transform'))]+transforms,stack+[(name,object_id)])
-        for item in root.findall('./{*}build/{*}item'):
-            if item.attrib.get('printable','1')=='0':continue
-            yield from expand(resolve(item,root_name),item.attrib['objectid'],[matrix(item.attrib.get('transform'))],[])
+            vertices=obj['vertices'];indices=obj['indices']
+            for offset in range(0,len(indices),3):
+                triangle=indices[offset:offset+3]
+                if any(i>=len(vertices)//3 for i in triangle):raise ValidationError('Índice de triángulo no válido.')
+                yield [[v*factor for v in transform(vertices[3*i:3*i+3],transforms)] for i in triangle]
+            for component in obj['components']:
+                yield from expand(resolve(component,name),component['objectid'],[matrix(component.get('transform'))]+transforms,stack+[(name,object_id)])
+        for item in root['build']:
+            if item.get('printable','1')=='0':continue
+            yield from expand(resolve(item,root_name),item['objectid'],[matrix(item.get('transform'))],[])
+
+
+def parse_3mf_xml(stream,budget):
+    """Parse only geometry/build records; ignore text, textures and slicer data.
+
+    Compact numeric arrays replace a full XML tree. The budget is shared by
+    every referenced model part so component-heavy archives stay bounded.
+    """
+    class Target:
+        def __init__(self):
+            self.stack=[];self.result={'unit':'millimeter','objects':{},'build':[]};self.obj=None;self.root_seen=False
+        def doctype(self,*args):raise ValidationError('XML 3MF no permitido: contiene DTD o entidades.')
+        def data(self,text):pass
+        def start(self,tag,attrs):
+            local=tag.rsplit('}',1)[-1];self.stack.append(local)
+            if len(self.stack)>64:raise ValidationError('XML 3MF demasiado anidado.')
+            if len(self.stack)==1:
+                if local!='model':raise ValidationError('No es un documento de modelo 3MF.')
+                self.root_seen=True;self.result['unit']=attrs.get('unit','millimeter')
+            if self.stack==['model','resources','object']:
+                key=attrs['id']
+                if key in self.result['objects'] or len(self.result['objects'])>=20000:raise ValidationError('Objetos 3MF duplicados o excesivos.')
+                self.obj={'vertices':array('d'),'indices':array('I'),'components':[]}
+                self.result['objects'][key]=self.obj
+            elif self.obj is not None and self.stack==['model','resources','object','mesh','vertices','vertex']:
+                values=[float(attrs[a]) for a in ('x','y','z')]
+                if not all(math.isfinite(v) and abs(v)<=1e12 for v in values):raise ValidationError('Coordenadas no válidas.')
+                budget[0]+=24
+                if budget[0]>MAX_GEOMETRY_BYTES:raise ValidationError('La malla requiere demasiada memoria para esta vista. Descarga el original.')
+                self.obj['vertices'].extend(values)
+            elif self.obj is not None and self.stack==['model','resources','object','mesh','triangles','triangle']:
+                values=[int(attrs[a]) for a in ('v1','v2','v3')]
+                if any(v<0 or v>4294967295 for v in values):raise ValidationError('Índice de triángulo no válido.')
+                budget[0]+=12
+                if budget[0]>MAX_GEOMETRY_BYTES:raise ValidationError('La malla requiere demasiada memoria para esta vista. Descarga el original.')
+                self.obj['indices'].extend(values)
+            elif self.obj is not None and self.stack==['model','resources','object','components','component']:
+                if len(self.obj['components'])>=10000:raise ValidationError('Demasiados componentes.')
+                self.obj['components'].append(dict(attrs))
+            elif self.stack==['model','build','item']:
+                if len(self.result['build'])>=10000:raise ValidationError('Demasiados objetos de construcción.')
+                self.result['build'].append(dict(attrs))
+        def end(self,tag):
+            if self.stack==['model','resources','object']:self.obj=None
+            self.stack.pop()
+        def close(self):
+            if not self.root_seen:raise ValidationError('XML de modelo vacío.')
+            return self.result
+    parser=ET.XMLParser(target=Target())
+    read=0
+    while True:
+        chunk=stream.read(65536)
+        if not chunk:break
+        read+=len(chunk)
+        if read>MAX_XML:raise ValidationError('Geometría XML demasiado grande para vista previa.')
+        parser.feed(chunk)
+    return parser.close()

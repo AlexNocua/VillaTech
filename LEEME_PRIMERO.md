@@ -1,3 +1,6 @@
+## V13 — vista previa de paquetes 3MF grandes
+Lee `LEEME_3MF_GRANDES_V13.md`. Se elimina el rechazo global por 64 MB descomprimidos y se usa lectura incremental.
+
 ## V12 — avisos internos de pedidos y biblioteca STL / 3MF
 Consulta primero `LEEME_CORREOS_MODELOS_V12.md`. Incluye la migración y los comandos del flujo de correo.
 

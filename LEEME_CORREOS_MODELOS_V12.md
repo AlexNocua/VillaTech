@@ -55,7 +55,7 @@ Al seleccionar uno se prepara una vista geométrica que puedes girar arrastrando
 
 Se admiten STL binarios y de texto. En 3MF se interpretan las mallas, unidades, objetos de construcción, componentes y transformaciones, incluidas piezas referenciadas en otros archivos del paquete. La geometría se presenta con un color uniforme: las texturas, pinturas y ajustes del laminador permanecen en el original, pero no se muestran en esta vista.
 
-La vista se limita a 12.000 triángulos aproximados para mantener fluidez, mostrando el número real de triángulos y las dimensiones. El STL no especifica unidades; se indica unidades del STL. Para 3MF se muestran milímetros. Por seguridad y rendimiento, se limita cada XML a 16 MB, el paquete descomprimido a 64 MB y el recorrido a dos millones de triángulos. Los paquetes no reconocidos, extensiones no compatibles, XML demasiado grande o modelos corruptos muestran un mensaje y conservan la descarga. No sustituye una validación de fabricación en tu laminador.
+La vista se limita a 12.000 triángulos aproximados para mantener fluidez, mostrando el número real de triángulos y las dimensiones. El STL no especifica unidades; se indica unidades del STL. Para 3MF se muestran milímetros. Los límites originales de V12 se sustituyen en V13 por lectura incremental. Consulta LEEME_3MF_GRANDES_V13.md para los límites vigentes. Los paquetes no reconocidos, extensiones no compatibles, XML demasiado grande o modelos corruptos muestran un mensaje y conservan la descarga. No sustituye una validación de fabricación en tu laminador.
 
 Referencia del formato: https://github.com/3MFConsortium/spec_core
 
