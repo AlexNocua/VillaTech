@@ -34,7 +34,7 @@ class OrderWorkflowTests(TestCase):
         self.assertEqual(dispatch_emails(msg.pk),1)
         self.assertEqual(dispatch_emails(msg.pk),0)
         self.assertIsNone(approve_order(order))
-        self.assertEqual(OperationalEmail.objects.count(),1)
+        self.assertEqual(OperationalEmail.objects.count(),2)
         sent=mail.outbox[0]
         self.assertIn(order.estimated_delivery_date.strftime('%d/%m/%Y'),sent.body)
         self.assertNotIn('/gestion/',sent.body)
@@ -45,7 +45,7 @@ class OrderWorkflowTests(TestCase):
     def test_approval_without_email_preserves_order_and_balance(self):
         order=self.order(customer_email='')
         self.assertIsNone(approve_order(order))
-        self.assertEqual(OperationalEmail.objects.count(),0)
+        self.assertEqual(OperationalEmail.objects.count(),1)
         self.assertEqual(self.client.get('/gestion/').context['sales'],100000)
         self.assertEqual(order.outstanding,100000)
     def test_confirmation_uses_staff_date_and_repeated_post_is_blocked(self):
@@ -55,7 +55,7 @@ class OrderWorkflowTests(TestCase):
             self.client.post(f'/gestion/registro/{quote.pk}/convertir/order/',{'estimated_delivery_date':day.isoformat()})
         quote.refresh_from_db()
         self.assertEqual(quote.estimated_delivery_date,day)
-        self.assertEqual(len(mail.outbox),1)
+        self.assertEqual(len(mail.outbox),2)
         self.assertEqual(self.client.post(f'/gestion/registro/{quote.pk}/convertir/order/').status_code,400)
         self.assertEqual(Entry.objects.count(),1)
     def test_invalid_confirmation_keeps_quote(self):
@@ -70,9 +70,9 @@ class OrderWorkflowTests(TestCase):
         day=timezone.localdate()+timedelta(days=6)
         with self.captureOnCommitCallbacks(execute=True):
             self.client.post(path,{'status':'printing','estimated_delivery_date':day.isoformat()})
-        self.assertEqual(len(mail.outbox),2)
+        self.assertEqual(len(mail.outbox),3)
         self.client.post(path,{'status':'printing','estimated_delivery_date':day.isoformat()})
-        self.assertEqual(OperationalEmail.objects.count(),2)
+        self.assertEqual(OperationalEmail.objects.count(),3)
         with self.captureOnCommitCallbacks(execute=True):
             self.client.post(path,{'status':'delivered','estimated_delivery_date':day.isoformat()})
         self.client.post(f'/gestion/registro/{order.pk}/convertir/sale/')

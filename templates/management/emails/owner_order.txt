@@ -1,0 +1,11 @@
+VillaTech · Nuevo pedido confirmado #{{ entry.pk }}
+Cliente: {{ entry.customer }} · {{ entry.customer_email }} · {{ entry.customer_phone }}
+Trabajo: {{ entry.title }}
+{{ entry.description }}
+Unidades: {{ entry.total_units }}
+Total COP: {{ entry.amount }}
+Saldo COP: {{ entry.outstanding }}
+Entrega estimada: {{ entry.estimated_delivery_date|date:'d/m/Y' }}
+Confirmación: {{ entry.get_approval_channel_display }}
+Revisa los archivos del cliente y el seguimiento aquí:
+{{ management_url }}

@@ -44,7 +44,7 @@ def dashboard(request):
         'due_today':active.filter(estimated_delivery_date=today).count(),
         'upcoming':active.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=3)).count(),
         'undated':active.filter(estimated_delivery_date__isnull=True).count(),
-        'failed_emails':__import__('apps.management.models',fromlist=['OperationalEmail']).OperationalEmail.objects.filter(status__in=['pending','failed']).count(),
+        'failed_emails':__import__('apps.management.models',fromlist=['OperationalEmail']).OperationalEmail.objects.filter(status__in=['pending','failed']).count() + __import__('apps.landing.models',fromlist=['ContactEmail']).ContactEmail.objects.filter(status__in=['pending','failed']).count(),
         'collected':collected,'receivable':totals['sale']-collected,'cash_balance':collected-totals['expense'],'sales':totals['sale'],'expenses':totals['expense'],'balance':totals['sale']-totals['expense'],'quotes':entries.filter(kind='quote').count(),'pending':active.count(),'grams':commercial.aggregate(total=Sum('filament_g'))['total'] or 0})
 
 from django.db import transaction
@@ -320,7 +320,11 @@ def email_list(request):
     status = request.GET.get('status','')
     if status in ('pending','failed','sent','skipped'):
         emails = emails.filter(status=status)
-    return render(request,'management/emails.html',{'page':Paginator(emails,25).get_page(request.GET.get('page')),'status':status})
+    from apps.landing.models import ContactEmail
+    from django.conf import settings
+    contacts=ContactEmail.objects.select_related('contact').order_by('-contact__date_create','-pk')
+    if status in ('pending','failed','sent'):contacts=contacts.filter(status=status)
+    return render(request,'management/emails.html',{'page':Paginator(emails,25).get_page(request.GET.get('page')),'contact_page':Paginator(contacts,25).get_page(request.GET.get('contact_page')),'status':status,'owner_recipient':settings.CONTACT_NOTIFICATION_EMAIL,'mail_provider':settings.EMAIL_PROVIDER})
 
 @staff_only
 @require_POST
@@ -519,3 +523,13 @@ def product_model(request,pk):
     response['Cache-Control']='private, no-store'
     response['X-Content-Type-Options']='nosniff'
     return response
+
+
+@staff_only
+@require_POST
+def retry_all_notifications(request):
+    from .workflow import dispatch_emails
+    from apps.landing.notifications import dispatch_contact_emails
+    sent=dispatch_contact_emails()+dispatch_emails()
+    messages.info(request,f'{sent} correos aceptados en este reintento. Los fallidos conservan su diagnóstico.')
+    return redirect('management:email_list')

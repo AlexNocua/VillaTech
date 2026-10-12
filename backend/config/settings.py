@@ -249,7 +249,8 @@ if IS_RAILWAY:
     SECURE_REDIRECT_EXEMPT = [r'^healthz/$']
 
 # Customer confirmation + private team notification.
-CONTACT_NOTIFICATION_EMAIL = os.environ.get('CONTACT_NOTIFICATION_EMAIL', EMAIL_HOST_USER)
+from email.utils import parseaddr
+CONTACT_NOTIFICATION_EMAIL = (os.environ.get('CONTACT_NOTIFICATION_EMAIL', '').strip() or EMAIL_HOST_USER.strip() or parseaddr(DEFAULT_FROM_EMAIL)[1])
 PUBLIC_SITE_URL = os.environ.get('PUBLIC_SITE_URL', 'https://' + os.environ['RAILWAY_PUBLIC_DOMAIN'] if os.environ.get('RAILWAY_PUBLIC_DOMAIN') else 'http://localhost:8000')
 # The customer-facing domain can differ from Railway's internal host.
 # Trust only the explicitly configured public origin; never a request header.

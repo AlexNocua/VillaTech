@@ -67,6 +67,8 @@ def approve_order(entry):
     if not entry.estimated_delivery_date:
         entry.estimated_delivery_date = estimate_delivery(entry)
     entry.save(update_fields=['approved_at','estimated_delivery_date','updated_at'])
+    if first:
+        schedule_dispatch(queue_owner_order(entry))
     return queue_order_email(entry,'approved') if first else None
 
 def schedule_dispatch(message):
@@ -88,7 +90,7 @@ def dispatch_emails(pk=None):
                 continue
             if message.status not in ('pending','failed'):
                 continue
-            if not message.recipient and message.event_key.startswith('digest:'):
+            if message.status != 'sent' and (message.event_key.startswith(('digest:','owner-order:','issue:'))):
                 message.recipient = settings.CONTACT_NOTIFICATION_EMAIL
             if message.event_key.startswith('quote:'):
                 entry=locked_entry
@@ -109,7 +111,7 @@ def dispatch_emails(pk=None):
             try:
                 validate_email(message.recipient)
                 mail = branded_mail(message.subject,message.text,message.recipient,message.html,
-                    reply_to=settings.CONTACT_NOTIFICATION_EMAIL, key='villatech-'+message.event_key)
+                    reply_to=(locked_entry.customer_email if message.event_key.startswith('owner-order:') and locked_entry and locked_entry.customer_email else settings.CONTACT_NOTIFICATION_EMAIL), key='villatech-'+message.event_key)
                 if message.attachment:
                     with message.attachment.open('rb') as pdf:
                         mail.attach('VillaTech-cotizacion.pdf',pdf.read(),'application/pdf')
@@ -178,3 +180,13 @@ def complete_delivery(entry, actor):
         note=f'Saldo liquidado automáticamente al entregar: {settled:.2f} COP. Se conservan los abonos previos.', actor=actor)
     schedule_dispatch(queue_order_email(entry, 'delivered'))
     return True
+
+
+def queue_owner_order(entry):
+    context={'entry':entry,'heading':'Nuevo pedido confirmado',
+        'management_url':settings.PUBLIC_SITE_URL.rstrip('/')+reverse('management:workflow_detail',args=[entry.pk])}
+    return OperationalEmail.objects.get_or_create(event_key=f'owner-order:{entry.pk}:approved',defaults={
+        'entry':entry,'recipient':settings.CONTACT_NOTIFICATION_EMAIL,
+        'subject':f'VillaTech · Nuevo pedido confirmado #{entry.pk}',
+        'text':render_to_string('management/emails/owner_order.txt',context),
+        'html':render_to_string('management/emails/owner_order.html',context)})[0]

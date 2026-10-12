@@ -53,7 +53,7 @@ class CommerceTests(TestCase):
   entry.refresh_from_db();self.assertEqual((entry.kind,entry.status,entry.approval_channel),('order','pending','email'))
   self.assertIsNotNone(entry.estimated_delivery_date);self.assertEqual(entry.paid_amount,0)
   public.post(url,{'accept':'yes'})
-  self.assertEqual(Entry.objects.count(),1);self.assertEqual(OperationalEmail.objects.count(),2)
+  self.assertEqual(Entry.objects.count(),1);self.assertEqual(OperationalEmail.objects.count(),3)
   self.assertEqual(self.client.get('/gestion/').context['sales'],10000)
  def test_public_csrf_required_and_tampered_token_rejected(self):
   entry=self.quote();token=self.send(entry);url=reverse('management:customer_quote',args=[token])
@@ -79,7 +79,7 @@ class CommerceTests(TestCase):
   self.assertEqual(self.client.post(path,{'channel':'message'}).status_code,400)
   with self.captureOnCommitCallbacks(execute=True):self.client.post(path,{'channel':'message','note':'WhatsApp 09 octubre'})
   entry.refresh_from_db();self.assertEqual(entry.approval_note,'WhatsApp 09 octubre')
-  self.assertEqual(entry.kind,'order');self.assertEqual(len(mail.outbox),1)
+  self.assertEqual(entry.kind,'order');self.assertEqual(len(mail.outbox),2)
  def test_failed_send_retained_and_expired_retry_suppressed(self):
   entry=self.quote()
   with patch('django.core.mail.message.EmailMultiAlternatives.send',side_effect=OSError('offline')):self.send(entry)

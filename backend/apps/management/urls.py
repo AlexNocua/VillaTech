@@ -1,8 +1,11 @@
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
-from . import views, commerce
+from . import views, commerce, model_library
 app_name='management'
 urlpatterns=[
+ path('modelos/',model_library.library,name='model_library'),
+ path('modelos/<str:kind>/<int:pk>/vista/',model_library.preview,name='model_preview'),
+ path('modelos/<str:kind>/<int:pk>/descargar/',model_library.download,name='model_download'),
  path('flujo/',commerce.board,name='workflow'),
  path('flujo/eliminar-seleccion/',commerce.bulk_delete,name='bulk_delete'),
  path('flujo/nuevo/',commerce.edit,name='workflow_create'),
@@ -23,6 +26,7 @@ urlpatterns=[
  path('gastos/',views.expenses,name='expenses'),
  path('variantes/',views.variants,name='variants'),
  path('variantes/<int:pk>/',views.variants,name='variant_edit'),
+ path('avisos/reintentar-todos/',views.retry_all_notifications,name='retry_all_notifications'),
  path('avisos/',views.email_list,name='email_list'),
  path('avisos/<int:pk>/reintentar/',views.retry_email,name='retry_email'),
  path('registro/<int:pk>/abono/',views.record_payment,name='record_payment'),

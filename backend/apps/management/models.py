@@ -2,7 +2,7 @@ import uuid
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
-from apps.landing.validators import private_path, validate_image
+from apps.landing.validators import private_path, validate_image, validate_print_model
 
 class Entry(models.Model):
     KIND = [('quote','Cotización'),('sale','Venta'),('order','Pedido'),('expense','Gasto')]
@@ -180,3 +180,12 @@ class CustomerIssue(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering = ['-created_at', '-pk']
+
+class PrintingModel(models.Model):
+    title=models.CharField('Nombre del modelo',max_length=150)
+    description=models.TextField('Descripción',blank=True)
+    file=models.FileField('Archivo STL o 3MF',upload_to=private_path,validators=[validate_print_model])
+    original_name=models.CharField(max_length=255,blank=True)
+    created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
+    created_at=models.DateTimeField(auto_now_add=True)
+    class Meta:ordering=['-created_at']

@@ -1,3 +1,6 @@
+## V12 — avisos internos de pedidos y biblioteca STL / 3MF
+Consulta primero `LEEME_CORREOS_MODELOS_V12.md`. Incluye la migración y los comandos del flujo de correo.
+
 ## V11 — videos, archivos de referencia y modelos de impresión
 Consulta primero `LEEME_ARCHIVOS_Y_MODELOS_V11.md`. Incluye las migraciones y los límites nuevos.
 

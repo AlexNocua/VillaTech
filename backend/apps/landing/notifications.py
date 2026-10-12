@@ -37,7 +37,7 @@ def dispatch_contact_emails(contact_id=None):
             message = ContactEmail.objects.select_for_update().get(pk=pk)
             if message.status == 'sent':
                 continue
-            if message.audience == 'admin' and not message.recipient:
+            if message.audience == 'admin':
                 message.recipient = settings.CONTACT_NOTIFICATION_EMAIL
             message.attempts += 1
             try:
