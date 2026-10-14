@@ -1,3 +1,6 @@
+## V15 — Catálogo, cotizaciones y filtros
+Lee `LEEME_CATALOGO_COTIZACIONES_V15.md` antes de actualizar. Incluye las migraciones necesarias.
+
 ## V13 — vista previa de paquetes 3MF grandes
 Lee `LEEME_3MF_GRANDES_V13.md`. Se elimina el rechazo global por 64 MB descomprimidos y se usa lectura incremental.
 

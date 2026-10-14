@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 from .validators import image_path, validate_image, private_path, validate_print_model
 
 
@@ -35,6 +36,8 @@ class Product(models.Model):
     name = models.CharField(max_length=150)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_filament_g = models.DecimalField('Filamento por unidad (g)',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+    unit_print_hours = models.DecimalField('Horas de impresión por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     stock = models.PositiveBigIntegerField(default=0)
     image = models.ImageField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
     print_model = models.FileField('Modelo de impresión', upload_to=private_path, blank=True, validators=[validate_print_model])
@@ -70,7 +73,7 @@ class Contact (models.Model):
     telephone=models.CharField('Teléfono',max_length=25,blank=False)
     email=models.EmailField(blank=True)
     service=models.CharField(max_length=50)
-    message=models.CharField(max_length=500)
+    message=models.CharField(max_length=10000)
     file=models.FileField(upload_to="Files/%Y/" ,verbose_name="Archivo")
     date_create=models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creacion")
 

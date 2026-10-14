@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="{% static 'landing/css/components/bridge.css' %}" />
   <link rel="stylesheet" href="{% static 'landing/css/components/process.css' %}" />
   <link rel="stylesheet" href="{% static 'landing/css/components/showcase.css' %}" />
-  <link rel="stylesheet" href="{% static 'landing/css/components/catalog.css' %}" />
+  <link rel="stylesheet" href="{% static 'landing/css/components/catalog.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'landing/css/components/faq.css' %}" />
   <link rel="stylesheet" href="{% static 'landing/css/components/contact.css' %}" />
   <link rel="stylesheet" href="{% static 'landing/css/components/scroll-story.css' %}?v=5" />
@@ -37,6 +37,6 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'landing/js/catalog.js' %}" defer></script>
+  <script src="{% static 'landing/js/catalog.js' %}?v=15" defer></script>
   <script src="{% static 'landing/js/file-uploader.js' %}?v=11" defer></script>
 {% endblock %}

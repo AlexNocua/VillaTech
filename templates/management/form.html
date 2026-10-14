@@ -17,4 +17,4 @@
 <template id="quote-empty"><fieldset class="quote-item"><legend>Nuevo producto</legend><div class="form-grid">{{ items.empty_form.as_div }}</div></fieldset></template><button type="button" id="add-quote-item">+ Agregar producto</button>
 {% endif %}
 <button class="primary" type="submit">{% if items %}Guardar registro y documento PDF{% elif kind == 'sale' %}Registrar venta{% elif kind == 'expense' %}Registrar gasto{% else %}Guardar{% endif %} →</button>
-</form></section>{% endblock %}
+</form></section>{% if products_data %}{{ products_data|json_script:'workflow-products' }}{{ variants_data|json_script:'workflow-variants' }}{% endif %}{% endblock %}

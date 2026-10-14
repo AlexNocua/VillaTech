@@ -18,6 +18,8 @@ from .models import Entry, EntryActivity, CustomerIssue, OperationalEmail
 from .forms import WorkflowForm, QuoteFormSet, ApprovalForm, DeliveryForm
 from .quotations import expire_quotes, send_quotation, confirm_quotation, entry_from_token, renew_quotation, recalculate, approval_url
 from .workflow import schedule_dispatch
+from .commercial_filters import filter_payment,PAYMENT_CHOICES
+from .catalog_selection import catalog_context,product_initial,save_product_images
 
 class ConfirmationForm(ApprovalForm):
     channel=forms.ChoiceField(label='Confirmación recibida por',choices=[('message','Mensaje o respuesta de correo'),('internal','Aprobación en gestión')])
@@ -38,6 +40,9 @@ def board(request):
     entries=Entry.objects.filter(kind__in=['quote','order','sale']).select_related('contact').prefetch_related('items','contact__attachments')
     search=request.GET.get('q','').strip()[:150];stage=request.GET.get('stage','all')
     if search:entries=entries.filter(Q(title__icontains=search)|Q(customer__icontains=search)|Q(customer_email__icontains=search))
+    payment=request.GET.get('payment','');status=request.GET.get('status','')
+    entries=filter_payment(entries,payment)
+    if status in dict(Entry.STATUS):entries=entries.filter(status=status)
     stages={'quotes':Q(kind='quote',status__in=['draft','quoted']), 'awaiting':Q(kind='quote',status='sent'),
         'orders':Q(kind='order',status__in=['pending','printing','ready']),
         'completed':Q(status__in=['delivered','sold']), 'closed':Q(status__in=['expired','cancelled']),
@@ -53,7 +58,9 @@ def board(request):
         elif due=='upcoming':entries=entries.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=3))
         else:entries=entries.filter(estimated_delivery_date__isnull=True)
     page=Paginator(entries,20).get_page(request.GET.get('page'))
-    return render(request,'management/workflow_board.html',{'page':page,'stage':stage,'search':search,'counts':counts,'due':due})
+    params=request.GET.copy();params.pop('page',None);params.pop('stage',None)
+    clear_due=params.copy();clear_due.pop('due',None)
+    return render(request,'management/workflow_board.html',{'clear_due_query':clear_due.urlencode(),'page':page,'stage':stage,'search':search,'counts':counts,'due':due,'payment':payment,'payment_choices':PAYMENT_CHOICES,'status':status,'statuses':Entry.STATUS,'tab_query':params.urlencode()})
 
 @staff_only
 def detail(request,pk):
@@ -67,7 +74,12 @@ def edit(request,pk=None):
     entry=get_object_or_404(Entry,pk=pk,kind__in=['quote','order']) if pk else Entry(kind='quote',status='quoted',created_by=request.user)
     if entry.status in ('delivered','cancelled'):
         messages.error(request,'El registro está cerrado. Conserva su historial.');return redirect('management:workflow_detail',pk=pk)
-    form=WorkflowForm(request.POST or None,request.FILES or None,instance=entry)
+    initial={}
+    if not pk and request.method=='GET' and request.GET.get('product','').isdecimal() and len(request.GET['product'])<=18:
+        from apps.landing.models import Product
+        selected=get_object_or_404(Product,pk=request.GET['product'],is_active=True)
+        initial=product_initial(selected)
+    form=WorkflowForm(request.POST or None,request.FILES or None,instance=entry,initial=initial)
     items=QuoteFormSet(request.POST or None,request.FILES or None,instance=entry,prefix='items')
     if request.method=='POST':
         valid=form.is_valid();valid=items.is_valid() and valid
@@ -86,7 +98,7 @@ def edit(request,pk=None):
                         entry.estimated_delivery_date=locked.estimated_delivery_date
                     entry.quotation_pdf=''
                     entry.amount=entry.quantity*entry.unit_price
-                    entry.save();items.instance=entry;items.save();recalculate(entry)
+                    entry.save();items.instance=entry;items.save();save_product_images(entry);recalculate(entry)
                     if locked and entry.kind=='order' and locked.estimated_delivery_date!=entry.estimated_delivery_date:
                         from .workflow import queue_order_email
                         schedule_dispatch(queue_order_email(entry,'updated'))
@@ -95,7 +107,7 @@ def edit(request,pk=None):
                 return redirect('management:workflow_detail',pk=entry.pk)
             except ValidationError as error:
                 form.add_error(None,error)
-    return render(request,'management/workflow_form.html',{'form':form,'items':items,'order':entry,'editing':bool(pk),'variants_data':list(__import__('apps.landing.models',fromlist=['ProductVariant']).ProductVariant.objects.select_related('product').values('id','name','product__name','estimated_price','length_cm','width_cm','height_cm'))})
+    return render(request,'management/workflow_form.html',{**catalog_context(),'form':form,'items':items,'order':entry,'editing':bool(pk),'variants_data':list(__import__('apps.landing.models',fromlist=['ProductVariant']).ProductVariant.objects.select_related('product').values('id','name','product__name','product_id','estimated_price','length_cm','width_cm','height_cm'))})
 
 @staff_only
 @require_POST

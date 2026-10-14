@@ -11,3 +11,14 @@ __pycache__/
 # Credenciales OAuth locales
 gmail-railway*.env
 client_secret*.json
+
+
+# Credenciales locales
+.env
+*.env
+client_secret*.json
+token.json
+
+# Plantillas sin credenciales
+!*.env.example
+!.env.example

@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
 
@@ -21,6 +21,12 @@ def recuperar_productos(request, contact_form=None, contact_error=None, status=2
 
     context = {"catalog_products": data,"catalog_categories":CategoryProduct.objects.filter(is_active=True)}
 
+    from .catalog_data import product_data,public_products,quote_text
+    if contact_form is None and request.GET.get('product','').isdecimal() and len(request.GET['product'])<=18:
+        selected=public_products().filter(pk=request.GET['product']).first()
+        if selected:
+            contact_form=ContactForm(initial={'reference_product':selected.pk,'message':quote_text(selected),'service':'impresion-3d'})
+    context['catalog_data']=[product_data(product) for product in data]
     context.update(contact_form=contact_form, contact_error=contact_error)
     return render(request, "landing/pages/landing.html", context, status=status)
 
@@ -74,8 +80,9 @@ def contact_form_action(request):
             for file in files: ContactAttachment.objects.create(contact=contact,file=file,original_name=Path(file.name).name[:255])
             from apps.management.models import Entry
             from .notifications import queue_contact_emails, safely_dispatch
+            selected=data.get('reference_product')
             entry=Entry.objects.create(kind='quote',status='draft',source='web',contact=contact,
-                title=f"Solicitud web · {data['service']}",description=data['message'],customer=data['name'][:150],
+                title=(f"Solicitud web · {selected.name}" if selected else f"Solicitud web · {data['service']}")[:150],reference_product=selected,product_category=selected.mtm_category if selected else None,unit_price=selected.price if selected else 0,unit_filament_g=selected.unit_filament_g if selected else 0,unit_print_hours=selected.unit_print_hours if selected else 0,description=data['message'],customer=data['name'][:150],
                 customer_email=data['email'],customer_phone=data['phone'],amount=0)
             queue_contact_emails(contact,entry)
             transaction.on_commit(lambda:safely_dispatch(contact.pk))
@@ -84,3 +91,9 @@ def contact_form_action(request):
         logging.getLogger(__name__).exception('Error al guardar solicitud y archivos de referencia')
         return contact_response(request,form,message='No pudimos guardar tu solicitud por un problema interno. Tus datos se conservan para que puedas intentar nuevamente.',status=500)
     return contact_response(request,form,message='Recibimos tu solicitud. Te contactaremos para revisar tu proyecto.')
+
+
+def product_detail(request,pk):
+    from .catalog_data import public_products
+    product=get_object_or_404(public_products().prefetch_related('variants'),pk=pk)
+    return render(request,'landing/product_detail.html',{'product':product})

@@ -57,15 +57,42 @@ document.getElementById('entry-form')?.addEventListener('input',refreshUnitTotal
 document.getElementById('entry-form')?.addEventListener('change',refreshUnitTotals);
 document.getElementById('add-quote-item')?.addEventListener('click',refreshUnitTotals);
 refreshUnitTotals();
-const workflowVariants=document.getElementById('workflow-variants');
-if(workflowVariants){
- const variants=JSON.parse(workflowVariants.textContent);
+const productData=document.getElementById('workflow-products');
+if(productData){
+ const products=JSON.parse(productData.textContent),variants=JSON.parse(document.getElementById('workflow-variants')?.textContent||'[]');
+ const productById=id=>products.find(p=>String(p.id)===id);
+ const rootSelect=document.getElementById('id_reference_product');
+ function preview(){
+  const p=productById(rootSelect?.value),panel=document.getElementById('selected-product-preview'),image=document.getElementById('selected-product-image');
+  if(!panel)return;panel.hidden=!p;if(!p)return;
+  document.getElementById('selected-product-info').textContent=p.name+' · '+p.category;
+  image.hidden=!p.image;if(p.image)image.src=p.image;else image.removeAttribute('src');image.alt=p.name;
+ }
+ function fillRoot(p){
+  for(const [field,value] of Object.entries({title:p.name,description:p.description,product_category:p.category_id,unit_price:p.price,unit_filament_g:p.unit_filament_g,unit_print_hours:p.unit_print_hours,amount:p.price,filament_g:p.unit_filament_g,print_hours:p.unit_print_hours})){
+   const input=document.getElementById('id_'+field);if(input)input.value=value;
+  }
+  const quantity=document.getElementById('id_quantity');if(quantity&&!quantity.value)quantity.value=1;
+  preview();refreshUnitTotals();
+ }
+ function restrictVariants(line){
+  const product=line.querySelector('[name$="-product"]')?.value,select=line.querySelector('[name$="-variant"]');if(!select)return;
+  for(const option of select.options){const v=variants.find(v=>String(v.id)===option.value);option.hidden=!!(product&&v&&String(v.product_id)!==product);option.disabled=option.hidden;}
+  if(select.selectedOptions[0]?.disabled)select.value='';
+ }
+ function fillLine(line,p,v){
+  const values={name:v?p.name+' · '+v.name:p.name,description:p.description,unit_price:v?v.estimated_price:p.price,unit_filament_g:p.unit_filament_g,unit_print_hours:p.unit_print_hours,length_cm:v?.length_cm||0,width_cm:v?.width_cm||0,height_cm:v?.height_cm||0};
+  for(const [field,value] of Object.entries(values)){const input=line.querySelector('[name$="-'+field+'"]');if(input)input.value=value;}
+  const quantity=line.querySelector('[name$="-quantity"]');if(quantity&&!quantity.value)quantity.value=1;
+  const title=document.getElementById('id_title');if(title&&!title.value)title.value=p.name;
+  restrictVariants(line);refreshUnitTotals();
+ }
+ rootSelect?.addEventListener('change',()=>{const p=productById(rootSelect.value);if(p)fillRoot(p);else preview();});preview();
+ document.querySelectorAll('#quote-items .quote-item').forEach(restrictVariants);
  document.getElementById('quote-items')?.addEventListener('change',event=>{
-  if(!event.target.name?.endsWith('-variant'))return;
-  const item=variants.find(v=>String(v.id)===event.target.value),line=event.target.closest('.quote-item');if(!item||!line)return;
-  for(const [field,value] of Object.entries({name:item.product__name+' · '+item.name,unit_price:item.estimated_price,length_cm:item.length_cm,width_cm:item.width_cm,height_cm:item.height_cm})){
-   const input=line.querySelector('[name$="-'+field+'"]');if(input&&input.value==='')input.value=value;
-  }refreshUnitTotals();
+  const line=event.target.closest('.quote-item');if(!line)return;
+  if(event.target.name?.endsWith('-product')){restrictVariants(line);const p=productById(event.target.value);if(p){const variant=line.querySelector('[name$="-variant"]');if(variant)variant.value='';fillLine(line,p);}}
+  if(event.target.name?.endsWith('-variant')){const v=variants.find(v=>String(v.id)===event.target.value),p=v&&productById(String(v.product_id));if(p){line.querySelector('[name$="-product"]').value=p.id;fillLine(line,p,v);}}
  });
 }
 

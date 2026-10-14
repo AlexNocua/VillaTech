@@ -46,13 +46,13 @@
       {% if catalog_products %}
         {% for product in catalog_products %}
           <article class="product-card"
-            data-product-card
+            data-product-card data-product-id="{{ product.pk }}"
             data-category="{{ product.category_slug|default:'otros' }}"
             data-name="{{ product.name|lower }} {{ product.description|lower }} {% for tag in product.tags %}
               {{ tag|lower }}
             {% endfor %}"
             data-featured="{{ product.is_featured|yesno:'1,0' }}">
-            <div class="product-card__visual product-card__visual--{{ product.category_slug|default:'otros' }}">
+            <a href="{% url 'landing:product_detail' product.pk %}" data-product-open="{{ product.pk }}" class="product-card__visual product-card__visual--{{ product.category_slug|default:'otros' }}">
               {% if product.display_image_url %}
                 <img src="{{ product.display_image_url }}" alt="{{ product.name }}" width="720" height="540" loading="lazy" decoding="async" />
               {% else %}
@@ -65,7 +65,7 @@
               {% if product.is_featured %}
                 <span class="product-card__badge">Destacado</span>
               {% endif %}
-            </div>
+            </a>
             <div class="product-card__body">
               <div class="product-card__topline">
                 <span>{{ product.mtm_category.name|default:product.mtm_category }}</span>
@@ -77,8 +77,8 @@
                   {% endif %}
                 </span>
               </div>
-              <h3>{{ product.name }}</h3>
-              <p>{{ product.description }}</p>
+              <h3><a href="{% url 'landing:product_detail' product.pk %}" data-product-open="{{ product.pk }}">{{ product.name }}</a></h3>
+              <p>{{ product.description|truncatechars:160 }}</p><a class="product-detail-link" href="{% url 'landing:product_detail' product.pk %}" data-product-open="{{ product.pk }}">Ver descripción completa →</a>
               {% if product.tags %}
                 <div class="product-card__tags">
                   {% for tag in product.tags %}
@@ -102,7 +102,7 @@
                 {% if product.is_available == False %}
                   <button type="button" disabled>No disponible</button>
                 {% else %}
-                  <a href="#contacto" data-catalog-quote data-product-name="{{ product.name }}">
+                  <a href="{% url 'landing:recuperar_productos' %}?product={{ product.pk }}#contacto" data-catalog-quote data-product-id="{{ product.pk }}" data-product-name="{{ product.name }}">
                     Cotizar<svg aria-hidden="true">
                       <use href="{% static 'landing/icons/sprite.svg' %}#icon-arrow-right"></use>
                     </svg>
@@ -126,3 +126,6 @@
     <p class="catalog__notice">Imágenes y descripciones ilustrativas. La disponibilidad, el color, la resistencia, las medidas y el acabado final se confirman antes de fabricar.</p>
   </div>
 </section>
+
+{{ catalog_data|json_script:'catalog-product-data' }}
+<dialog id="catalog-product-dialog" class="catalog-product-dialog" aria-labelledby="catalog-dialog-title"><button type="button" class="catalog-dialog-close" aria-label="Cerrar detalle" data-product-close>×</button><div class="catalog-dialog-grid"><img id="catalog-dialog-image" alt="" hidden><div><p id="catalog-dialog-category" class="eyebrow"></p><h2 id="catalog-dialog-title"></h2><p id="catalog-dialog-description" class="catalog-full-description"></p><p id="catalog-dialog-price"></p><a id="catalog-dialog-quote" class="button button--primary" data-catalog-quote>Cotizar este producto →</a></div></div></dialog>

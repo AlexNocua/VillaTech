@@ -79,18 +79,55 @@
             return;
         }
 
-        var quote = event.target.closest("[data-catalog-quote]");
-        if (!quote) return;
 
-        var service = document.querySelector("#contact-service");
-        var message = document.querySelector("#contact-message");
-        var productName = quote.dataset.productName || "una impresión 3D";
-
-        if (service) service.value = "impresion-3d";
-        if (message && !message.value.trim()) {
-            message.value = "Me interesa cotizar: " + productName + ".\n\nCantidad, medidas o detalles: ";
-        }
     });
 
+    var source = document.getElementById('catalog-product-data');
+    var products = source ? JSON.parse(source.textContent) : [];
+    var lookup = new Map(products.map(function(product){return [String(product.id),product];}));
+    var dialog = document.getElementById('catalog-product-dialog');
+    var selected = document.getElementById('contact-reference-product');
+    var form = document.querySelector('[data-contact-form]');
+    var appliedText = '';
+    function selection(product){
+        var panel=document.getElementById('contact-product-selection');
+        if(!panel)return;
+        panel.hidden=!selected.value;
+        document.getElementById('contact-selected-product-name').textContent=product ? 'Producto: '+product.name : 'Producto de referencia seleccionado';
+        document.getElementById('contact-selected-category').textContent=product ? 'Categoría: '+product.category : '';
+    }
+    if(selected){var initial=lookup.get(selected.value);selection(initial);if(initial)appliedText=initial.quote_text;}
+    function quoteProduct(product){
+        var message=document.getElementById('contact-message');
+        var current=message.value,notes='';
+        if(appliedText && current.indexOf(appliedText)===0)notes=current.slice(appliedText.length);
+        else if(current.trim())notes='\n\nDetalles adicionales:\n'+current;
+        message.value=product.quote_text+notes;appliedText=product.quote_text;
+        selected.value=product.id;selection(product);
+        document.getElementById('contact-service').value='impresion-3d';
+        message.dispatchEvent(new Event('input',{bubbles:true}));
+        if(dialog && dialog.open)dialog.close();
+        document.getElementById('contacto').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+        message.focus({preventScroll:true});
+    }
+    document.addEventListener('click',function(event){
+        var quote=event.target.closest('[data-catalog-quote]');
+        if(quote && selected){var product=lookup.get(quote.dataset.productId);if(product){event.preventDefault();quoteProduct(product);}return;}
+        var open=event.target.closest('[data-product-open]');
+        if(!open){var card=event.target.closest('[data-product-card]');if(card && !event.target.closest('a,button,summary,input,select,textarea'))open=card;}
+        if(open && dialog && dialog.showModal){
+            var product=lookup.get(open.dataset.productOpen || open.dataset.productId);if(!product)return;
+            event.preventDefault();document.getElementById('catalog-dialog-title').textContent=product.name;
+            document.getElementById('catalog-dialog-category').textContent=product.category;
+            document.getElementById('catalog-dialog-description').textContent=product.description;
+            document.getElementById('catalog-dialog-price').textContent='Precio de referencia: '+new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(product.price));
+            var image=document.getElementById('catalog-dialog-image');image.hidden=!product.image;if(product.image)image.src=product.image;else image.removeAttribute('src');image.alt=product.name;
+            var button=document.getElementById('catalog-dialog-quote');button.dataset.productId=product.id;button.href='?product='+encodeURIComponent(product.id)+'#contacto';
+            if(!dialog.open)dialog.showModal();
+        }
+    });
+    dialog && dialog.querySelector('[data-product-close]').addEventListener('click',function(){dialog.close();});
+    document.getElementById('contact-clear-product')?.addEventListener('click',function(){selected.value='';selection(null);appliedText='';});
+    form?.addEventListener('catalog-selection-reset',function(){selected.value='';selection(null);appliedText='';});
     updateCatalog();
 }());

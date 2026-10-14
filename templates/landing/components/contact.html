@@ -48,7 +48,7 @@
 
       <div data-contact-feedback class="sr-only" role="status" aria-live="polite" hidden></div>
       <form class="contact-form" data-contact-form action="{% url 'landing:contact_form_action' %}" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
+        {% csrf_token %}<input type="hidden" name="reference_product" id="contact-reference-product" value="{{ contact_form.reference_product.value|default_if_none:'' }}"><div id="contact-product-selection" class="contact-product-selection" hidden><strong id="contact-selected-product-name"></strong><small id="contact-selected-category"></small><button type="button" id="contact-clear-product">Quitar producto de referencia</button></div><p class="contact-field-error" data-contact-error="reference_product" role="alert">{% for error in contact_form.reference_product.errors %}{{ error }}{% endfor %}</p>
         <div class="form-row">
           <div class="form-field">
             <label for="contact-name">Nombre</label>
@@ -78,7 +78,7 @@
 
         <div class="form-field">
           <label for="contact-message">Describe tu idea</label>
-          <textarea id="contact-message" name="message" rows="4" maxlength="500" placeholder="Qué quieres crear, para qué lo necesitas y cualquier detalle que ya tengas…" required>{{ contact_form.message.value|default_if_none:'' }}</textarea><p class="contact-field-error" id="contact-message-error" data-contact-error="message" role="alert">{% for error in contact_form.message.errors %}{{ error }} {% endfor %}</p>
+          <textarea id="contact-message" name="message" rows="4" maxlength="10000" placeholder="Qué quieres crear, para qué lo necesitas y cualquier detalle que ya tengas…" required>{{ contact_form.message.value|default_if_none:'' }}</textarea><p class="contact-field-error" id="contact-message-error" data-contact-error="message" role="alert">{% for error in contact_form.message.errors %}{{ error }} {% endfor %}</p>
         </div>
 
         <label class="contact-form__consent">
@@ -140,4 +140,4 @@
   </div>
 </section>
 
-<script src="{% static 'landing/js/contact-validation.js' %}?v=11" defer></script>
+<script src="{% static 'landing/js/contact-validation.js' %}?v=15" defer></script>

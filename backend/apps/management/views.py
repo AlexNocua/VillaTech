@@ -11,6 +11,8 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from functools import wraps
 from pathlib import Path
 from .models import Entry, DevelopmentProject, ProjectScreenshot, Payment
+from .catalog_selection import catalog_context,save_product_images
+from apps.landing.models import ProductVariant
 from .forms import SaleForm, OrderForm, QuotationForm, ExpenseForm, ProductForm, VariantForm, CalculatorForm, DevelopmentForm
 from .pricing import calculate
 from .workflow import active_orders, estimate_delivery, approve_order, queue_order_email, schedule_dispatch
@@ -87,14 +89,14 @@ def entry_form(request,kind,pk=None):
                         effective = sum(d.get('quantity',0)*d.get('unit_price',0) for d in active)
                     if effective < current.paid_amount or (entry.status == 'cancelled' and current.paid_amount):
                         form.add_error(None,'Los abonos cambiaron mientras editabas. Revisa el total y el estado antes de guardar.')
-                        return render(request,'management/form.html',{'form':form,'items':items,'kind':kind,'title':dict(Entry.KIND)[kind]})
+                        return render(request,'management/form.html',{**catalog_context(),'variants_data':list(ProductVariant.objects.values('id','name','product_id','estimated_price','length_cm','width_cm','height_cm')),'form':form,'items':items,'kind':kind,'title':dict(Entry.KIND)[kind]})
                 if kind == "quote": entry.status = "quoted"
                 if not pk:entry.created_by=request.user
                 entry.amount=entry.amount or 0
                 entry.unit_price=entry.amount;entry.quantity=1;entry.unit_filament_g=entry.filament_g;entry.unit_print_hours=entry.print_hours
                 entry.save()
                 if items is not None:
-                    items.instance=entry;items.save()
+                    items.instance=entry;items.save();save_product_images(entry)
                     from django.core.files.base import ContentFile
                     for item in entry.items.select_related('variant').all():
                         if not item.image and item.variant_id and item.variant.image:
@@ -106,6 +108,8 @@ def entry_form(request,kind,pk=None):
                             from django.core.exceptions import ValidationError
                             raise ValidationError('El total de productos no puede ser menor que los abonos registrados.')
                         entry.save(update_fields=['amount','updated_at'])
+                        from .quotations import recalculate
+                        recalculate(entry)
                 if kind == 'order' and entry.status == 'delivered':
                     from .workflow import complete_delivery
                     complete_delivery(entry, request.user)
@@ -124,7 +128,7 @@ def entry_form(request,kind,pk=None):
             return redirect('management:quote_detail',pk=entry.pk) if kind in ('order','quote','sale') else redirect('management:dashboard')
     profile=PrinterProfile.objects.filter(name='Creality K1C').first() or PrinterProfile.objects.first()
     cost_initial={'energy_mode':'rated','printer':profile.pk,'printer_price':profile.purchase_price,'useful_hours':profile.useful_hours,'maintenance_hour':profile.maintenance_hour} if profile else {}
-    return render(request,'management/form.html',{'form':form,'items':items,'kind':kind,'title':dict(Entry.KIND)[kind],'cost_form':CalculatorForm(initial=cost_initial) if items is not None else None,'profiles_data':list(PrinterProfile.objects.values('id','rated_watts','average_watts','purchase_price','useful_hours','maintenance_hour'))})
+    return render(request,'management/form.html',{**catalog_context(),'variants_data':list(ProductVariant.objects.values('id','name','product_id','estimated_price','length_cm','width_cm','height_cm')),'form':form,'items':items,'kind':kind,'title':dict(Entry.KIND)[kind],'cost_form':CalculatorForm(initial=cost_initial) if items is not None else None,'profiles_data':list(PrinterProfile.objects.values('id','rated_watts','average_watts','purchase_price','useful_hours','maintenance_hour'))})
 
 @staff_only
 def catalog_form(request,variant=False):
@@ -408,9 +412,9 @@ def entry_list(request, section='orders'):
         elif due == 'today': entries = entries.filter(estimated_delivery_date=today)
         elif due == 'upcoming': entries = entries.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=3))
         else: entries = entries.filter(estimated_delivery_date__isnull=True)
-    if request.GET.get('balance') == 'pending':
-        from django.db.models import F
-        entries = entries.filter(kind__in=['sale','order'],amount__gt=F('paid_amount')).exclude(status='cancelled')
+    from .commercial_filters import filter_payment,PAYMENT_CHOICES
+    balance=request.GET.get('balance','')
+    entries=filter_payment(entries,balance)
     if status in dict(statuses): entries = entries.filter(status=status)
     if source in ('web','manual'): entries = entries.filter(source=source)
     if query:
@@ -418,7 +422,7 @@ def entry_list(request, section='orders'):
     page = Paginator(entries,25).get_page(request.GET.get('page'))
     params = request.GET.copy(); params.pop('page',None)
     return render(request,'management/entries.html',{'page':page,'section':section,'statuses':statuses,
-        'status':status,'due':due,'balance_filter':request.GET.get('balance',''),'products':__import__('apps.landing.models',fromlist=['Product']).Product.objects.filter(is_active=True),'source':source,'query':query,'filters_query':params.urlencode()})
+        'status':status,'due':due,'payment_choices':PAYMENT_CHOICES,'balance_filter':balance,'products':__import__('apps.landing.models',fromlist=['Product']).Product.objects.filter(is_active=True),'source':source,'query':query,'filters_query':params.urlencode()})
 
 @staff_only
 def contact_attachment(request,pk):
@@ -533,3 +537,14 @@ def retry_all_notifications(request):
     sent=dispatch_contact_emails()+dispatch_emails()
     messages.info(request,f'{sent} correos aceptados en este reintento. Los fallidos conservan su diagnóstico.')
     return redirect('management:email_list')
+
+
+@staff_only
+def product_image(request,pk):
+    from apps.landing.models import Product
+    from django.http import Http404
+    product=get_object_or_404(Product,pk=pk)
+    if not product.image:raise Http404
+    response=FileResponse(product.image.open('rb'))
+    response['Cache-Control']='private, no-store';response['X-Content-Type-Options']='nosniff'
+    return response

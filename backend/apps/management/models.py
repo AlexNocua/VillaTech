@@ -53,6 +53,15 @@ class Entry(models.Model):
             if not self.sold_at:self.sold_at=timezone.now()
         super().save(*args,**kwargs)
     @property
+    def payment_status(self):
+        if self.kind not in ('order','sale') or self.status=='cancelled':return 'not_applicable'
+        if self.amount<=0:return 'no_charge'
+        if self.paid_amount>=self.amount:return 'paid'
+        return 'partial' if self.paid_amount else 'unpaid'
+    @property
+    def payment_label(self):
+        return {'paid':'Pagado / liquidado','partial':'Abono parcial','unpaid':'Sin pago','no_charge':'Sin cargo','not_applicable':'No aplica'}[self.payment_status]
+    @property
     def outstanding(self):
         return max(self.amount - self.paid_amount, 0) if self.kind in ('order','sale') and self.status != 'cancelled' else 0
     @property
@@ -88,6 +97,7 @@ class PrinterProfile(models.Model):
 
 class QuoteItem(models.Model):
     order = models.ForeignKey(Entry,on_delete=models.CASCADE,related_name='items')
+    product = models.ForeignKey('landing.Product',verbose_name='Producto existente',on_delete=models.SET_NULL,null=True,blank=True,related_name='quotation_lines')
     variant = models.ForeignKey('landing.ProductVariant',on_delete=models.SET_NULL,null=True,blank=True)
     name = models.CharField('Producto / descripción',max_length=160)
     length_cm = models.DecimalField('Largo cm',max_digits=7,decimal_places=2,default=0,validators=[MinValueValidator(0)])

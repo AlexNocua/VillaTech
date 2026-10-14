@@ -11,7 +11,7 @@
       else feedback.classList.remove('sr-only');
     }
 
-    const fields = ['name','phone','email','service','message','privacy_consent','reference_files'];
+    const fields = ['name','phone','email','service','message','privacy_consent','reference_files','reference_product'];
     form.noValidate = true;
     function show(name, messages) {
       const field = form.elements.namedItem(name);
@@ -25,6 +25,7 @@
     function validate(name) {
       const field = form.elements.namedItem(name), value = field.value.trim();
       let message = '';
+      if (name === 'reference_product') {show(name,[]);return true;}
       if (name === 'reference_files') {
         const files = Array.from(field.files);
         if (files.length > 5) message = 'Selecciona como máximo 5 archivos.';
@@ -39,15 +40,15 @@
         message = 'Introduce un teléfono de 7 a 15 dígitos; puedes usar +57, espacios, paréntesis o guiones.';
       } else if (name === 'email' && (value.length>254 || field.validity.typeMismatch || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))) {
         message = 'Introduce un correo válido, por ejemplo nombre@correo.com.';
-      } else if ((name==='name' && value.length>255) || (name==='message' && value.length>500)) {
-        message = name==='name' ? 'El nombre debe tener máximo 255 caracteres.' : 'La descripción debe tener máximo 500 caracteres.';
+      } else if ((name==='name' && value.length>255) || (name==='message' && value.length>10000)) {
+        message = name==='name' ? 'El nombre debe tener máximo 255 caracteres.' : 'La descripción debe tener máximo 10000 caracteres.';
       }
       show(name, message ? [message] : []);
       return !message;
     }
     function focusError(name) {
       const field = form.elements.namedItem(name);
-      const target = name==='reference_files' ? form.querySelector('[data-file-dropzone]') : field;
+      const target = name==='reference_product' ? form.querySelector('#contact-clear-product') : name==='reference_files' ? form.querySelector('[data-file-dropzone]') : field;
       if (target) { target.scrollIntoView({block:'center',behavior:'smooth'}); if (name==='reference_files') target.tabIndex=0; target.focus({preventScroll:true}); }
     }
     fields.forEach(name=>{
@@ -75,11 +76,12 @@
           return;
         }
         const result=await response.json();
-        const labels={name:'Nombre',phone:'Teléfono',email:'Correo',service:'Servicio',message:'Descripción',privacy_consent:'Privacidad',reference_files:'Archivos'};
+        const labels={name:'Nombre',phone:'Teléfono',email:'Correo',service:'Servicio',message:'Descripción',privacy_consent:'Privacidad',reference_files:'Archivos',reference_product:'Producto'};
         const details=Object.entries(result.errors || {}).map(([name,errors])=>(labels[name] || name)+': '+errors.join(' ')).join(' ');
         notify([result.message || 'No pudimos confirmar el envío. Tus datos se conservan.',details].filter(Boolean).join(' '),response.ok && result.ok ? 'success' : 'error');
         if (response.ok && result.ok) {
           form.reset(); fields.forEach(name=>show(name,[]));
+          form.dispatchEvent(new Event('catalog-selection-reset'));
           const clear=form.querySelector('[data-file-clear]'); if(clear)clear.click();
         } else {
           const errors=result.errors || {};

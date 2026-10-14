@@ -5,6 +5,15 @@ from apps.landing.models import Product, ProductVariant
 class EntryForm(forms.ModelForm):
     """Shared validation only; each operation exposes its own fields."""
     def __init__(self,*args,**kwargs):
+        data=args[0] if args else kwargs.get('data')
+        if data is not None and str(data.get('reference_product','')).isdecimal() and len(str(data['reference_product']))<=18:
+            product=Product.objects.filter(pk=data['reference_product']).first()
+            if product:
+                data=data.copy()
+                for field,value in {'title':product.name,'description':product.description,'product_category':product.mtm_category_id,'amount':product.price,'filament_g':product.unit_filament_g,'print_hours':product.unit_print_hours}.items():
+                    if field in self.base_fields and data.get(field) in (None,''):data[field]=value
+                if args:args=(data,)+args[1:]
+                else:kwargs['data']=data
         super().__init__(*args,**kwargs)
         for name in ['filament_g','print_hours']:
             if name in self.fields:self.fields[name].required=False
@@ -83,6 +92,15 @@ class ExpenseForm(forms.ModelForm):
         labels={'title':'¿En qué gastaste?','amount':'Valor del gasto (COP)'}
 
 class ProductForm(forms.ModelForm):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        for field in ('unit_filament_g','unit_print_hours'):self.fields[field].required=False
+    def clean_unit_filament_g(self):
+        value=self.cleaned_data.get('unit_filament_g')
+        return value if value is not None else self.instance.unit_filament_g
+    def clean_unit_print_hours(self):
+        value=self.cleaned_data.get('unit_print_hours')
+        return value if value is not None else self.instance.unit_print_hours
     def save(self, commit=True):
         from pathlib import Path
         uploaded=self.cleaned_data.get('print_model')
@@ -91,7 +109,7 @@ class ProductForm(forms.ModelForm):
         return super().save(commit=commit)
     class Meta:
         model = Product
-        fields = ['name','description','mtm_category','price','image','image_url','print_model','is_active','is_public']
+        fields = ['name','description','mtm_category','price','unit_filament_g','unit_print_hours','image','image_url','print_model','is_active','is_public']
         widgets={'print_model':forms.FileInput(attrs={'accept':'.stl,.obj,.3mf,.step,.stp,.gcode'})}
         help_texts={'print_model':'Hasta 100 MB. STL, OBJ, 3MF, STEP/STP o GCODE. Si no eliges otro archivo, se conserva el modelo guardado.'}
 
@@ -143,7 +161,7 @@ class PrinterForm(forms.ModelForm):
 class QuoteItemForm(forms.ModelForm):
     class Meta:
         model=QuoteItem
-        fields=['variant','name','length_cm','width_cm','height_cm','quantity','unit_price','unit_filament_g','unit_print_hours','description','image','comparison_image']
+        fields=['product','variant','name','length_cm','width_cm','height_cm','quantity','unit_price','unit_filament_g','unit_print_hours','description','image','comparison_image']
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         for field in ['name','length_cm','width_cm','height_cm','unit_price','unit_filament_g','unit_print_hours']:
@@ -155,9 +173,18 @@ class QuoteItemForm(forms.ModelForm):
         if value>1000000:raise forms.ValidationError('Máximo 1000000 unidades por línea.')
         return value
     def clean(self):
-        data=super().clean();variant=data.get('variant')
+        data=super().clean();variant=data.get('variant');product=data.get('product')
         if variant:
-            data['name']=data.get('name') or f'{variant.product.name} · {variant.name}'
+            if product and variant.product_id!=product.pk:self.add_error('variant','La variante debe pertenecer al producto seleccionado.')
+            product=variant.product;data['product']=product
+        if product:
+            data['name']=data.get('name') or (f'{product.name} · {variant.name}'[:160] if variant else product.name)
+            data['description']=data.get('description') or product.description
+            for field in ['unit_filament_g','unit_print_hours']:
+                if data.get(field) is None:data[field]=getattr(product,field)
+            if not variant and data.get('unit_price') is None:data['unit_price']=product.price
+        if variant:
+            data['name']=data.get('name') or f'{variant.product.name} · {variant.name}'[:160]
             for field in ['length_cm','width_cm','height_cm']:data[field]=data.get(field) if data.get(field) is not None else getattr(variant,field)
             data['unit_price']=data.get('unit_price') if data.get('unit_price') is not None else variant.estimated_price
         if not data.get('name') and not data.get('DELETE'): self.add_error('name','Escribe un producto o elige una referencia.')
@@ -189,6 +216,15 @@ class WorkflowForm(EntryForm):
         labels={'title':'Nombre del trabajo','description':'Descripción y condiciones', 'estimated_delivery_date':'Entrega propuesta'}
         widgets={'description':forms.Textarea(attrs={'rows':3}),'estimated_delivery_date':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d')}
     def __init__(self,*args,**kwargs):
+        data=args[0] if args else kwargs.get('data')
+        if data is not None and str(data.get('reference_product','')).isdecimal() and len(str(data['reference_product']))<=18:
+            product=Product.objects.select_related('mtm_category').filter(pk=data['reference_product']).first()
+            if product:
+                data=data.copy()
+                for field,value in {'title':product.name,'description':product.description,'product_category':product.mtm_category_id,'unit_price':product.price,'unit_filament_g':product.unit_filament_g,'unit_print_hours':product.unit_print_hours,'quantity':1}.items():
+                    if data.get(field) in (None,''):data[field]=value
+                if args:args=(data,)+args[1:]
+                else:kwargs['data']=data
         super().__init__(*args,**kwargs)
         self.fields['quantity'].max_value=1000000
         self.fields['description'].help_text='Material, color, acabado y condiciones acordadas con el cliente.'
