@@ -175,3 +175,37 @@ def parse_3mf_xml(stream,budget):
         if read>MAX_XML:raise ValidationError('Geometría XML demasiado grande para vista previa.')
         parser.feed(chunk)
     return parser.close()
+
+
+def solid_mesh_preview(field):
+    """Write every triangle to a compact seekable binary stream, never thin faces.
+
+    Header: VTM1, uint32 triangle count, six float64 bounds, uint32 mm flag,
+    four reserved bytes. Payload: 9 float32 coordinates per triangle (LE).
+    The temporary file is owned/closed by the response, including on failure.
+    """
+    import tempfile
+    if field.size>MAX_FILE:raise ValidationError('El archivo supera el límite de vista previa de 100 MB.')
+    output=tempfile.TemporaryFile(mode='w+b')
+    try:
+        output.write(b'\0'*64)
+        low=[math.inf]*3;high=[-math.inf]*3;count=0
+        extension=Path(field.name).suffix.lower()
+        with field.open('rb') as file:
+            if extension=='.stl':triangles=stl_triangles(file.read(MAX_FILE+1))
+            elif extension=='.3mf':triangles=three_mf_triangles(file)
+            else:raise ValidationError('La vista 3D admite STL y 3MF.')
+            for triangle in triangles:
+                count+=1
+                if count>MAX_TRIANGLES:raise ValidationError('Modelo demasiado complejo para esta vista sólida. Descarga el original.')
+                coordinates=[]
+                for point in triangle:
+                    for axis,value in enumerate(point):
+                        if not math.isfinite(value) or abs(value)>1e12:raise ValidationError('Coordenadas no válidas en el modelo.')
+                        low[axis]=min(low[axis],value);high[axis]=max(high[axis],value);coordinates.append(value)
+                output.write(struct.pack('<9f',*coordinates))
+        if not count:raise ValidationError('No encontramos una malla de triángulos para mostrar.')
+        output.seek(0);output.write(struct.pack('<4sI6dI4x',b'VTM1',count,*low,*high,int(extension=='.3mf')));output.seek(0)
+        return output
+    except Exception:
+        output.close();raise

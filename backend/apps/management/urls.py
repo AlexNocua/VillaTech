@@ -1,8 +1,9 @@
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
-from . import views, commerce, model_library
+from . import views, commerce, model_library, calendar_views
 app_name='management'
 urlpatterns=[
+ path('calendario/',calendar_views.calendar_view,name='calendar'),
  path('modelos/',model_library.library,name='model_library'),
  path('modelos/<str:kind>/<int:pk>/vista/',model_library.preview,name='model_preview'),
  path('modelos/<str:kind>/<int:pk>/descargar/',model_library.download,name='model_download'),

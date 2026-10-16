@@ -1,3 +1,6 @@
+## V16 — Calendario y visor sólido
+Lee `LEEME_CALENDARIO_MODELOS_V16.md` para actualizar y probar las vistas nuevas.
+
 ## V15 — Catálogo, cotizaciones y filtros
 Lee `LEEME_CATALOGO_COTIZACIONES_V15.md` antes de actualizar. Incluye las migraciones necesarias.
 

@@ -8,7 +8,7 @@ from django.urls import reverse
 from .models import PrintingModel
 from .views import staff_only
 from apps.landing.models import Product,ContactAttachment
-from .mesh_preview import mesh_preview
+from .mesh_preview import mesh_preview,solid_mesh_preview
 
 class ModelForm(forms.ModelForm):
     class Meta:
@@ -50,7 +50,13 @@ def model_file(kind,pk):
 def preview(request,kind,pk):
     file,name=model_file(kind,pk)
     if not file:raise Http404
-    try:data=mesh_preview(file)
+    try:
+        if 'application/octet-stream' in request.headers.get('Accept',''):
+            response=FileResponse(solid_mesh_preview(file),content_type='application/octet-stream')
+            response['Cache-Control']='private, no-store'
+            response['X-Content-Type-Options']='nosniff'
+            return response
+        data=mesh_preview(file)
     except ValidationError as error:return JsonResponse({'error':' '.join(error.messages)},status=422)
     except Exception as error:
         logging.getLogger(__name__).warning('No se pudo preparar vista de modelo: %s',type(error).__name__)
