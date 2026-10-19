@@ -12,6 +12,8 @@
     var empty = catalog.querySelector("[data-catalog-empty]");
     var filters = Array.prototype.slice.call(catalog.querySelectorAll("[data-catalog-filter]"));
     var activeCategory = "all";
+    var expanded = false;
+    var more = catalog.querySelector("[data-catalog-more]");
 
     function normalize(value) {
         return String(value || "")
@@ -23,14 +25,6 @@
 
     function updateCatalog() {
         var query = normalize(search ? search.value : "");
-        var visible = cards.filter(function (card) {
-            var categoryMatches = activeCategory === "all" || card.dataset.category === activeCategory;
-            var queryMatches = !query || normalize(card.dataset.name).indexOf(query) !== -1;
-            var shouldShow = categoryMatches && queryMatches;
-            card.hidden = !shouldShow;
-            return shouldShow;
-        });
-
         var orderedCards = cards.slice().sort(function (first, second) {
             if (sort && sort.value === "name") {
                 return normalize(first.dataset.name).localeCompare(normalize(second.dataset.name), "es");
@@ -39,18 +33,27 @@
             return Number(second.dataset.featured || 0) - Number(first.dataset.featured || 0);
         });
 
-        orderedCards.forEach(function (card) {
+        var matched = orderedCards.filter(function(card) {
+            return (activeCategory === "all" || card.dataset.category === activeCategory)
+                && (!query || normalize(card.dataset.name).indexOf(query) !== -1);
+        });
+        orderedCards.forEach(function(card) {
+            card.hidden = matched.indexOf(card) === -1 || (!expanded && matched.indexOf(card) >= 5);
             grid.appendChild(card);
         });
-
-        if (count) {
-            count.textContent = visible.length + (visible.length === 1 ? " producto disponible" : " productos disponibles");
+        var shown = expanded ? matched.length : Math.min(5, matched.length);
+        if (count) count.textContent = "Mostrando " + shown + " de " + matched.length + " productos";
+        if (empty) empty.hidden = matched.length !== 0;
+        if (more) {
+            more.hidden = matched.length <= 5;
+            more.textContent = expanded ? "Ver menos productos" : "Ver más productos (" + (matched.length - shown) + ")";
+            more.setAttribute("aria-expanded", String(expanded));
         }
-        if (empty) empty.hidden = visible.length !== 0;
     }
 
     filters.forEach(function (filter) {
         filter.addEventListener("click", function () {
+            expanded = false;
             activeCategory = filter.dataset.catalogFilter || "all";
             filters.forEach(function (button) {
                 var isActive = button === filter;
@@ -61,13 +64,15 @@
         });
     });
 
-    if (search) search.addEventListener("input", updateCatalog);
-    if (sort) sort.addEventListener("change", updateCatalog);
+    if (search) search.addEventListener("input", function(){ expanded = false; updateCatalog(); });
+    if (sort) sort.addEventListener("change", function(){ expanded = false; updateCatalog(); });
+    if (more) more.addEventListener("click", function(){ expanded = !expanded; updateCatalog(); if (!expanded) { grid.scrollIntoView({block:"start"}); } });
 
     catalog.addEventListener("click", function (event) {
         var reset = event.target.closest("[data-catalog-reset]");
         if (reset) {
             activeCategory = "all";
+            expanded = false;
             if (search) search.value = "";
             filters.forEach(function (button) {
                 var isAll = button.dataset.catalogFilter === "all";

@@ -28,3 +28,28 @@
 @media(prefers-reduced-motion:reduce){.reviews-v18 *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
 .reviews-filters[hidden]{display:none}
+
+/* V19: responsive 3D scene, fitted independently of animated transforms. */
+.reviews-motion-stage{height:390px;perspective:900px;max-width:100%}
+.reviews-scene-fit{position:absolute;width:440px;height:390px;left:50%;top:50%;margin:-195px 0 0 -220px;transform:scale(var(--scene-scale,.65));transform-origin:center;perspective:800px}
+.reviews-scene-fit .reviews-rating-bubble{left:24%;top:92px;width:245px;transform:rotateY(-10deg);border:1px solid #ffffff22;box-shadow:9px 8px 0 var(--brand-green),18px 24px 45px #07182a22}
+.reviews-scene-fit .reviews-feedback-bubble{left:4%;top:5px}.reviews-scene-fit .reviews-verified-bubble{left:40%;bottom:8px}
+.reviews-solid{position:absolute;left:34px;top:250px;width:78px;height:78px;perspective:500px;transform-style:preserve-3d;z-index:4}
+.reviews-cube{position:absolute;width:66px;height:66px;transform-style:preserve-3d;rotate:x -20deg}
+.cube-face{position:absolute;inset:0;display:grid;place-items:center;border:1px solid #07182a33;backface-visibility:hidden;color:var(--brand-navy);font-size:30px;font-weight:850;background:var(--brand-lime)}
+.cube-front{transform:translateZ(33px)}.cube-back{transform:rotateY(180deg) translateZ(33px)}.cube-right{transform:rotateY(90deg) translateZ(33px);background:var(--brand-green)}.cube-left{transform:rotateY(-90deg) translateZ(33px);background:var(--brand-green)}.cube-top{transform:rotateX(90deg) translateZ(33px)}.cube-bottom{transform:rotateX(-90deg) translateZ(33px);background:var(--brand-green)}
+.reviews-solid-shadow{position:absolute;top:100px;left:-6px;width:90px;height:12px;border-radius:50%;background:#07182a22;filter:blur(5px);transform:rotateX(35deg)}
+.reviews-code-object{position:absolute;right:2px;top:28px;width:100px;height:90px;transform-style:preserve-3d;transform:rotateY(-18deg) rotateX(6deg);z-index:4}
+.reviews-code-screen{height:76px;border:4px solid var(--brand-green);border-bottom-width:7px;border-radius:8px;background:var(--brand-navy);padding:4px 8px;box-shadow:4px 3px 0 var(--brand-navy);color:var(--brand-lime)}
+.reviews-code-screen>span{display:block;font-size:6px;letter-spacing:2px}.reviews-code-screen strong{display:block;text-align:center;font-size:24px;line-height:1.1}.reviews-code-screen i{display:block;height:2px;width:70%;margin-top:4px;background:var(--brand-green)}.reviews-code-screen i:last-child{width:45%;background:var(--brand-lime)}
+.reviews-code-base{position:absolute;top:75px;left:-6px;width:112px;height:24px;transform-origin:top;transform:rotateX(65deg);border-radius:2px 2px 8px 8px;background:var(--brand-green);border:1px solid var(--brand-navy);box-shadow:0 5px 0 var(--brand-navy)}
+.reviews-v18 .reviews-copy,.reviews-v18 .customer-review-card{min-width:0}
+.reviews-v18 .customer-review-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))}
+.reviews-v18 .reviews-toolbar button{min-height:44px;max-width:100%;white-space:normal}
+.reviews-v18 .reviews-summary{flex-wrap:wrap}.reviews-v18 .reviews-description,.reviews-v18 .reviews-summary{overflow-wrap:anywhere}
+.reviews-v18 .customer-review-content footer{flex-wrap:wrap}.reviews-v18 .reviews-author{min-width:100px}.reviews-v18 .customer-review-content time{margin-left:auto}
+.reviews-v18 .listing-more{text-align:center;margin:28px 0}.reviews-v18 .listing-more p{font-size:12px;color:var(--color-text-secondary);margin-bottom:12px}
+.reviews-v18 [data-review-more][hidden]{display:none!important}
+@media(max-width:1050px){.reviews-v18 .customer-reviews-heading{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}}
+@media(max-width:800px){.reviews-v18 .customer-reviews-heading{grid-template-columns:minmax(0,1fr)}.reviews-motion-stage{width:440px;max-width:100%;height:360px;margin:auto}.reviews-v18 h2{font-size:clamp(32px,7vw,50px)}}
+@media(max-width:400px){.reviews-motion-stage{height:290px}.reviews-v18 .eyebrow{font-size:9px;letter-spacing:1px}.reviews-v18 .customer-review-content{padding:14px 16px 20px}.reviews-v18 .reviews-toolbar{gap:10px}.reviews-v18 .reviews-filters{width:100%}.reviews-v18 .reviews-filters>button{flex:1 1 auto}.reviews-v18 .review-photo-pair img{height:155px}}

@@ -16,21 +16,12 @@ if (section) {
   const observers = [];
   let paused = false, visible = false, disabled = preference.matches;
 
-  section.querySelector('.reviews-filters').hidden = false;
-  // Filtering is useful even when animation is disabled.
-  for (const button of section.querySelectorAll('[data-review-filter]')) {
-    button.addEventListener('click', () => {
-      const kind = button.dataset.reviewFilter;
-      let shown = 0;
-      for (const card of cards) {
-        card.hidden = kind !== 'all' && card.dataset.reviewKind !== kind;
-        if (!card.hidden) shown++;
-      }
-      section.querySelectorAll('[data-review-filter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-      section.querySelector('[data-review-filter-empty]').hidden = shown !== 0;
-      section.querySelector('[data-review-filter-status]').textContent = `${shown} experiencias visibles: ${button.textContent}.`;
-    });
-  }
+  // Scale the decorative scene without changing the animated objects' transforms.
+  const fit = stage.querySelector('.reviews-scene-fit');
+  function fitScene() { fit.style.setProperty('--scene-scale', String(Math.min(1, stage.clientWidth / 440))); }
+  fitScene();
+  if ('ResizeObserver' in window) new ResizeObserver(fitScene).observe(stage);
+  else window.addEventListener('resize', fitScene);
 
   function syncAmbient() {
     const play = visible && !document.hidden && !paused && !disabled;
@@ -57,6 +48,9 @@ if (section) {
     if (disabled || !('IntersectionObserver' in window)) return;
     try {
       section.dataset.reviewAnimation = 'animejs';
+      ambient.push(animate(stage.querySelector('.reviews-cube'), { rotateY: [0, 360], duration: 16000, loop: true, ease: 'linear', autoplay: false }));
+      ambient.push(animate(stage.querySelector('.reviews-solid'), { y: [-6, 6], duration: 3200, alternate: true, loop: true, ease: 'inOutSine', autoplay: false }));
+      ambient.push(animate(stage.querySelector('.reviews-code-object'), { rotateY: [-12, 12], rotateX: [5, -5], y: [0, -8], duration: 4400, alternate: true, loop: true, ease: 'inOutSine', autoplay: false }));
       ambient.push(animate(stage.querySelector('.reviews-feedback-bubble'), { y: [-5, 5], rotate: [-1, 1], duration: 3000, alternate: true, loop: true, ease: 'inOutSine', autoplay: false }));
       ambient.push(animate(stage.querySelector('.reviews-verified-bubble'), { y: [4, -4], duration: 2500, alternate: true, loop: true, ease: 'inOutSine', autoplay: false }));
       ambient.push(animate(stage.querySelectorAll('.reviews-spark'), { scale: [.75, 1.15], opacity: [.4, 1], delay: stagger(350), duration: 1500, alternate: true, loop: true, ease: 'inOutSine', autoplay: false }));

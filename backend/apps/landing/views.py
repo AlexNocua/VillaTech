@@ -30,7 +30,7 @@ def recuperar_productos(request, contact_form=None, contact_error=None, status=2
     from django.db.models import Avg,Count
     reviews=published_reviews()
     stats=reviews.aggregate(average=Avg('rating'),count=Count('pk'))
-    context.update(customer_reviews=reviews[:24],review_average=stats['average'],review_count=stats['count'])
+    context.update(customer_reviews=reviews,review_average=stats['average'],review_count=stats['count'])
     context['catalog_data']=[product_data(product) for product in data]
     context.update(contact_form=contact_form, contact_error=contact_error)
     return render(request, "landing/pages/landing.html", context, status=status)

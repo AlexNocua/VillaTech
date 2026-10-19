@@ -14,16 +14,20 @@
         </div>
       </div>
       <div class="reviews-motion-stage" aria-hidden="true">
+        <div class="reviews-scene-fit">
         <div class="reviews-orbit-ring"></div><div class="reviews-orbit-ring reviews-orbit-ring--small"></div>
         <svg class="reviews-conversation-path" viewBox="0 0 440 360"><path d="M80 240C0 140 160 30 280 85S470 280 310 315" fill="none"/><circle class="reviews-spark" cx="45" cy="150" r="5"/><circle class="reviews-spark" cx="350" cy="70" r="7"/><path class="reviews-spark" d="m370 275 6 12 13 2-10 9 3 14-12-7-12 7 2-14-10-9 14-2Z"/></svg>
         <div class="reviews-feedback-bubble"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v10H9l-4 4V5Z"/><path d="M9 9h6M9 12h4"/></svg><span>Tu opinión<br><strong>nos inspira.</strong></span><i></i></div>
         <div class="reviews-rating-bubble"><span class="reviews-quote-mark">“</span><small>HECHO CON DEDICACIÓN</small><strong>Ideas que<br>cobran vida.</strong><div class="reviews-scene-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div><span class="reviews-scene-note">Impresión 3D + Software</span></div>
+        <div class="reviews-solid" role="presentation"><div class="reviews-cube"><span class="cube-face cube-front">V</span><span class="cube-face cube-back"></span><span class="cube-face cube-right"></span><span class="cube-face cube-left"></span><span class="cube-face cube-top">✦</span><span class="cube-face cube-bottom"></span></div><div class="reviews-solid-shadow"></div></div>
+        <div class="reviews-code-object"><div class="reviews-code-screen"><span>● ● ●</span><strong>&lt; / &gt;</strong><i></i><i></i></div><div class="reviews-code-base"></div></div>
         <div class="reviews-verified-bubble"><span>✓</span> Experiencias reales</div>
+        </div>
       </div>
     </header>
     <div class="reviews-toolbar"><div class="reviews-filters" hidden role="group" aria-label="Tipo de opinión"><button type="button" data-review-filter="all" aria-pressed="true">Todas las experiencias</button><button type="button" data-review-filter="product" aria-pressed="false">Impresión 3D</button><button type="button" data-review-filter="software" aria-pressed="false">Software y desarrollos</button></div><button type="button" class="reviews-motion-toggle" data-reviews-motion aria-pressed="false" hidden>Pausar animación</button></div>
     <p class="sr-only" data-review-filter-status role="status" aria-live="polite"></p>
-    <div class="customer-review-grid">
+    <div id="review-grid" class="customer-review-grid">
       {% for review in customer_reviews %}
       <article class="customer-review-card" data-review-card data-review-kind="{{ review.review_type }}">
         <div class="reviews-card-media"><div class="review-photo-pair"><figure><img src="{% url 'management:review_image' review.pk 'reference' %}" alt="{{ review.reference_label }} de {{ review.product_title }}" loading="lazy" decoding="async"><figcaption>{{ review.reference_label }}</figcaption></figure><span class="reviews-result-arrow" aria-hidden="true">↗</span><figure><img src="{% url 'management:review_image' review.pk 'final' %}" alt="{{ review.final_label }}: {{ review.product_title }}" loading="lazy" decoding="async"><figcaption>{{ review.final_label }}</figcaption></figure></div><span class="reviews-kind-badge">{% if review.review_type == 'software' %}Software / desarrollo{% else %}Impresión 3D{% endif %}</span></div>
@@ -31,6 +35,7 @@
       </article>
       {% endfor %}
     </div>
+    <div class="listing-more"><p data-review-count aria-live="polite"></p><button type="button" class="button button--secondary" data-review-more aria-expanded="false" aria-controls="review-grid" hidden>Ver más opiniones</button></div>
     <p class="reviews-filter-empty" data-review-filter-empty hidden>Aún no hay experiencias publicadas en esta categoría.</p>
     <p class="reviews-closing">Cada pieza y cada desarrollo cuentan una historia. <span>Gracias por dejarnos ser parte de la tuya.</span></p>
   </div>

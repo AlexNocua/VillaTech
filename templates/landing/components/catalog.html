@@ -38,11 +38,11 @@
     </div>
 
     <div class="catalog-meta">
-      <p data-catalog-count aria-live="polite">6 productos disponibles</p>
+      <p data-catalog-count aria-live="polite">{{ catalog_products|length }} productos disponibles</p>
       <span>Producción bajo pedido · Cotización personalizada</span>
     </div>
 
-    <div class="catalog-grid" data-catalog-grid>
+    <div id="catalog-grid" class="catalog-grid" data-catalog-grid>
       {% if catalog_products %}
         {% for product in catalog_products %}
           <article class="product-card"
@@ -115,6 +115,8 @@
       {% else %}<p class="catalog__notice">Pronto encontrarás aquí nuestras referencias publicadas. Cuéntanos tu idea para una cotización personalizada.</p>
       {% endif %}
     </div>
+
+    <div class="listing-more"><button type="button" class="button button--secondary" data-catalog-more aria-expanded="false" aria-controls="catalog-grid" hidden>Ver más productos</button></div>
 
     <div class="catalog-empty" data-catalog-empty hidden>
       <span aria-hidden="true">0 resultados</span>

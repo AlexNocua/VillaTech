@@ -40,7 +40,7 @@ class SoftwareReviewTests(TestCase):
         response=Client().post(url,{'full_name':'Cliente de software','rating':'3','comment':'Buena aplicación','consent':'on','review_type':'product'})
         self.assertEqual(response.status_code,302);review.refresh_from_db();self.assertEqual(review.review_type,'software');self.assertEqual(review.rating,3);self.assertFalse(review.is_published)
         self.client.post(reverse('management:review_action',args=[review.pk]),{'action':'publish'})
-        response=Client().get('/');self.assertContains(response,'data-review-kind="software"');self.assertContains(response,'Desarrollo verificado');self.assertContains(response,'3 de 5 estrellas');self.assertContains(response,'type="module" src="/static/landing/js/reviews.js?v=18"')
+        response=Client().get('/');self.assertContains(response,'data-review-kind="software"');self.assertContains(response,'Desarrollo verificado');self.assertContains(response,'3 de 5 estrellas');self.assertContains(response,'type="module" src="/static/landing/js/reviews.js?v=19"')
     def test_staff_filter_separates_software_from_product_opinions(self):
         review=self.invitation();order=Entry.objects.create(kind='sale',title='Figura',amount=1)
         ProductReview.objects.create(entry=order,subject_key='entry',product_title='Figura')
@@ -59,3 +59,17 @@ class SoftwareReviewTests(TestCase):
         self.assertTrue(form.is_valid(),form.errors);form.save();review.refresh_from_db();self.assertEqual(review.review_type,'software')
     def test_no_opinions_still_hides_entire_section_and_scripts(self):
         response=Client().get('/');self.assertNotContains(response,'id="opiniones"');self.assertNotContains(response,'landing/js/reviews.js')
+
+    def test_public_listing_keeps_all_published_opinions_beyond_twenty_four(self):
+        from django.utils import timezone
+        review=self.invitation()
+        for index in range(28):
+            ProductReview.objects.create(development=self.project,subject_key='published-%s'%index,
+                product_title='Proyecto %s'%index,review_type='software',full_name='Cliente',
+                rating=5,consent=True,is_published=True,submitted_at=timezone.now(),
+                reference_image=review.reference_image.name,final_image=review.final_image.name)
+        response=Client().get('/')
+        self.assertEqual(len(response.context['customer_reviews']),28)
+        self.assertContains(response,'data-review-more')
+        self.assertContains(response,'aria-controls="review-grid"')
+        self.assertContains(response,'landing/js/review-list.js?v=19')
