@@ -1,3 +1,6 @@
+## V17 — Entregas pendientes de pago y opiniones
+Lee `LEEME_ENTREGAS_OPINIONES_V17.md`. Es obligatorio aplicar la migración management/0019.
+
 ## V16 — Calendario y visor sólido
 Lee `LEEME_CALENDARIO_MODELOS_V16.md` para actualizar y probar las vistas nuevas.
 

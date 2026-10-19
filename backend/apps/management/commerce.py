@@ -44,7 +44,7 @@ def board(request):
     entries=filter_payment(entries,payment)
     if status in dict(Entry.STATUS):entries=entries.filter(status=status)
     stages={'quotes':Q(kind='quote',status__in=['draft','quoted']), 'awaiting':Q(kind='quote',status='sent'),
-        'orders':Q(kind='order',status__in=['pending','printing','ready']),
+        'orders':Q(kind='order',status__in=['pending','printing','ready','delivered_due']),
         'completed':Q(status__in=['delivered','sold']), 'closed':Q(status__in=['expired','cancelled']),
         'receivable':Q(kind__in=['order','sale'],amount__gt=F('paid_amount'))&~Q(status='cancelled')}
     counts={key:entries.filter(value).count() for key,value in stages.items()}
@@ -72,7 +72,7 @@ def detail(request,pk):
 def edit(request,pk=None):
     expire_quotes()
     entry=get_object_or_404(Entry,pk=pk,kind__in=['quote','order']) if pk else Entry(kind='quote',status='quoted',created_by=request.user)
-    if entry.status in ('delivered','cancelled'):
+    if entry.status in ('delivered','delivered_due','cancelled'):
         messages.error(request,'El registro está cerrado. Conserva su historial.');return redirect('management:workflow_detail',pk=pk)
     initial={}
     if not pk and request.method=='GET' and request.GET.get('product','').isdecimal() and len(request.GET['product'])<=18:

@@ -1,0 +1,1 @@
+{% if entry.delivered_unpaid %}<form method="post" action="{% url 'management:settle_delivered' entry.pk %}">{% csrf_token %}<button class="primary">Registrar pago y cerrar</button></form>{% endif %}

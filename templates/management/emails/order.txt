@@ -2,6 +2,9 @@ VillaTech · {{ heading }}
 Hola {{ entry.customer|default:'cliente' }}
 Pedido #{{ entry.pk }}: {{ entry.title }}
 Estado: {{ entry.get_status_display }}
+{% if entry.delivered_unpaid %}El producto se entregó, pero el saldo sigue pendiente. La entrega no registra un pago.
+{% elif event == 'paid' %}Recibimos tu pago final; el pedido entregado quedó al día.
+{% endif %}
 {% if event != 'cancelled' and event != 'delivered' %}Entrega estimada: {{ entry.estimated_delivery_date|date:'d/m/Y'|default:'Por confirmar' }}
 {% endif %}Total COP: {{ entry.amount }}
 Total liquidado COP: {{ entry.paid_amount }}

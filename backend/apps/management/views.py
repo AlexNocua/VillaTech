@@ -47,7 +47,7 @@ def dashboard(request):
         'upcoming':active.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=3)).count(),
         'undated':active.filter(estimated_delivery_date__isnull=True).count(),
         'failed_emails':__import__('apps.management.models',fromlist=['OperationalEmail']).OperationalEmail.objects.filter(status__in=['pending','failed']).count() + __import__('apps.landing.models',fromlist=['ContactEmail']).ContactEmail.objects.filter(status__in=['pending','failed']).count(),
-        'collected':collected,'receivable':totals['sale']-collected,'cash_balance':collected-totals['expense'],'sales':totals['sale'],'expenses':totals['expense'],'balance':totals['sale']-totals['expense'],'quotes':entries.filter(kind='quote').count(),'pending':active.count(),'grams':commercial.aggregate(total=Sum('filament_g'))['total'] or 0})
+        'delivered_due_count':commercial.filter(status='delivered_due').count(),'delivered_due_total':commercial.filter(status='delivered_due').aggregate(total=Sum('amount')-Sum('paid_amount'))['total'] or 0,'collected':collected,'receivable':totals['sale']-collected,'cash_balance':collected-totals['expense'],'sales':totals['sale'],'expenses':totals['expense'],'balance':totals['sale']-totals['expense'],'quotes':entries.filter(kind='quote').count(),'pending':active.count(),'grams':commercial.aggregate(total=Sum('filament_g'))['total'] or 0})
 
 from django.db import transaction
 from .forms import QuoteFormSet, CategoryForm, PrinterForm
@@ -62,6 +62,9 @@ def entry_form(request,kind,pk=None):
     if kind in ('quote','order') and pk and instance.status in ('sent','expired'):
         from .commerce import edit
         return edit(request,pk)
+    if pk and instance.status=='delivered_due':
+        messages.info(request,'Este pedido ya se entregó. Registra el cobro desde su ficha.')
+        return redirect('management:workflow_detail',pk=pk)
     old_status, old_date = instance.status, instance.estimated_delivery_date
     form_class={"sale":SaleForm,"order":OrderForm,"quote":QuotationForm,"expense":ExpenseForm}[kind]
     form=form_class(request.POST or None,request.FILES or None,instance=instance)
@@ -110,7 +113,11 @@ def entry_form(request,kind,pk=None):
                         entry.save(update_fields=['amount','updated_at'])
                         from .quotations import recalculate
                         recalculate(entry)
-                if kind == 'order' and entry.status == 'delivered':
+                if kind=='order' and entry.status=='delivered_due':
+                    from .workflow import deliver_unpaid
+                    entry.status=old_status if pk else 'pending'
+                    deliver_unpaid(entry,request.user)
+                elif kind == 'order' and entry.status == 'delivered':
                     from .workflow import complete_delivery
                     complete_delivery(entry, request.user)
                 elif kind == 'order':
@@ -282,12 +289,18 @@ def update_delivery(request,pk):
         form = DeliveryForm(request.POST)
         if not form.is_valid():
             messages.error(request,'Revisa el estado y la fecha de entrega.')
+        elif form.cleaned_data['status']=='delivered_due' and entry.status!='cancelled':
+            from .workflow import deliver_unpaid
+            entry.estimated_delivery_date=form.cleaned_data['estimated_delivery_date'] or entry.estimated_delivery_date
+            entry.save(update_fields=['estimated_delivery_date','updated_at'])
+            deliver_unpaid(entry,request.user)
+            messages.success(request,'Entrega registrada. Se conserva el saldo pendiente, sin liquidarlo.')
         elif form.cleaned_data['status'] == 'delivered' and entry.status != 'cancelled':
             from .workflow import complete_delivery
             entry.estimated_delivery_date = form.cleaned_data['estimated_delivery_date'] or entry.estimated_delivery_date
             complete_delivery(entry, request.user)
             messages.success(request, 'Entregado: venta registrada y saldo liquidado automáticamente.')
-        elif entry.status in ('delivered','cancelled'):
+        elif entry.status in ('delivered','delivered_due','cancelled'):
             messages.error(request,'El pedido está cerrado. Conserva su historial y crea otro registro si corresponde.')
         elif form.cleaned_data['status'] == 'cancelled' and entry.paid_amount:
             messages.error(request,'El pedido tiene abonos. Concilia los pagos antes de cancelar.')
@@ -470,6 +483,9 @@ def record_payment(request,pk):
             from .models import EntryActivity
             EntryActivity.objects.create(entry=entry,label='Abono registrado',note=f'{amount} COP',actor=request.user)
             entry.save(update_fields=['paid_amount','updated_at'])
+            if entry.status=='delivered_due' and entry.outstanding==0:
+                from .workflow import complete_delivery
+                complete_delivery(entry,request.user)
             messages.success(request,'Abono registrado. El total vendido no cambia.')
     return redirect('management:quote_detail',pk=pk)
 

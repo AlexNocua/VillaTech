@@ -1,8 +1,20 @@
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
-from . import views, commerce, model_library, calendar_views
+from . import views, commerce, model_library, calendar_views, reviews
 app_name='management'
 urlpatterns=[
+ path('opiniones/',reviews.review_list,name='reviews'),
+ path('opiniones/<int:pk>/',reviews.review_edit,name='review_edit'),
+ path('opiniones/<int:pk>/accion/',reviews.review_action,name='review_action'),
+ path('opiniones/<int:pk>/imagen/<str:kind>/',reviews.review_image,name='review_image'),
+ path('opinar/<uuid:token>/',reviews.customer_review,name='customer_review'),
+ path('flujo/<int:pk>/cobrar-entregado/',reviews.settle_delivered,name='settle_delivered'),
+ path('flujo/<int:pk>/imagenes/',reviews.photos,name='order_photos'),
+ path('flujo/<int:pk>/imagenes/<str:kind>/',reviews.entry_photo,name='order_photo'),
+ path('flujo/<int:pk>/producto/<int:item_pk>/imagenes/',reviews.photos,name='item_photos'),
+ path('flujo/<int:pk>/producto/<int:item_pk>/imagen/<str:kind>/',reviews.entry_photo,name='item_photo'),
+ path('flujo/<int:pk>/opinion/',reviews.prepare_review,name='prepare_review'),
+ path('flujo/<int:pk>/producto/<int:item_pk>/opinion/',reviews.prepare_review,name='prepare_item_review'),
  path('calendario/',calendar_views.calendar_view,name='calendar'),
  path('modelos/',model_library.library,name='model_library'),
  path('modelos/<str:kind>/<int:pk>/vista/',model_library.preview,name='model_preview'),

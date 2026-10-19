@@ -33,7 +33,7 @@ class EntryForm(forms.ModelForm):
             self.add_error('amount','El total no puede ser menor que los abonos registrados.')
         if data.get('status') == 'cancelled' and self.instance.paid_amount:
             self.add_error('status','Este pedido tiene abonos. Revisa y concilia los pagos antes de cancelar.')
-        if self.instance.pk and self.instance.status in ('delivered','cancelled') and data.get('status') and data['status'] != self.instance.status:
+        if self.instance.pk and self.instance.status in ('delivered','delivered_due','cancelled') and data.get('status') and data['status'] != self.instance.status:
             self.add_error('status','El pedido está cerrado; conserva su estado para no reabrir su historial.')
         return data
     class Meta:
@@ -54,7 +54,7 @@ class OrderForm(EntryForm):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields['amount'].required=False
-        if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] in ['pending','printing','ready','delivered','cancelled']]
+        if 'status' in self.fields:self.fields['status'].choices=[choice for choice in Entry.STATUS if choice[0] in ['pending','printing','ready','delivered','delivered_due','cancelled']]
         self.fields['estimated_delivery_date'].help_text='Vacío al confirmar: estimación automática según cola y horas. Puedes ajustar el compromiso con el cliente.'
     def clean_amount(self):
         value=self.cleaned_data.get('amount');product=self.cleaned_data.get('reference_product')
@@ -73,7 +73,7 @@ class QuotationForm(OrderForm):
 class DeliveryForm(forms.Form):
     estimated_delivery_date = forms.DateField(label='Entrega estimada', required=False,
         widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
-    status = forms.ChoiceField(label='Estado de producción',choices=[c for c in Entry.STATUS if c[0] in ('pending','printing','ready','delivered','cancelled')])
+    status = forms.ChoiceField(label='Estado de producción',choices=[c for c in Entry.STATUS if c[0] in ('pending','printing','ready','delivered','delivered_due','cancelled')])
 
 class ApprovalForm(forms.Form):
     estimated_delivery_date = forms.DateField(label='Entrega estimada', required=False,

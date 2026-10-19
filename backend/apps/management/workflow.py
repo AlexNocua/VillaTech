@@ -50,7 +50,7 @@ def queue_order_email(entry, event):
     version = entry.updated_at.isoformat() if event != 'approved' else 'first'
     key = f'order:{entry.pk}:{event}:{version}'
     titles = {'approved':'Pedido confirmado', 'updated':'Actualización de tu pedido',
-              'printing':'Tu pedido está en elaboración', 'ready':'Tu pedido está terminado', 'delivered':'Pedido entregado', 'cancelled':'Pedido cancelado'}
+              'printing':'Tu pedido está en elaboración', 'ready':'Tu pedido está terminado', 'delivered':'Pedido entregado', 'paid':'Pago recibido y pedido cerrado', 'cancelled':'Pedido cancelado'}
     context = {'entry':entry, 'heading':titles[event], 'event':event}
     return OperationalEmail.objects.get_or_create(event_key=key, defaults={
         'entry':entry, 'recipient':entry.customer_email,
@@ -170,6 +170,7 @@ def complete_delivery(entry, actor):
         from django.core.exceptions import ValidationError
         raise ValidationError('Solo un pedido activo puede cerrarse como venta entregada.')
     from .models import EntryActivity
+    was_deferred=entry.status=='delivered_due'
     settled = entry.outstanding
     entry.delivery_settled_amount += settled
     entry.paid_amount = entry.amount
@@ -178,7 +179,7 @@ def complete_delivery(entry, actor):
     entry.save()
     EntryActivity.objects.create(entry=entry, label='Entregado y cerrado como venta',
         note=f'Saldo liquidado automáticamente al entregar: {settled:.2f} COP. Se conservan los abonos previos.', actor=actor)
-    schedule_dispatch(queue_order_email(entry, 'delivered'))
+    schedule_dispatch(queue_order_email(entry,'paid' if was_deferred else 'delivered'))
     return True
 
 
@@ -190,3 +191,17 @@ def queue_owner_order(entry):
         'subject':f'VillaTech · Nuevo pedido confirmado #{entry.pk}',
         'text':render_to_string('management/emails/owner_order.txt',context),
         'html':render_to_string('management/emails/owner_order.html',context)})[0]
+
+
+def deliver_unpaid(entry,actor):
+    """Physical delivery only; existing receipts remain unchanged."""
+    from django.core.exceptions import ValidationError
+    from .models import EntryActivity
+    if entry.kind!='order' or entry.status=='cancelled':raise ValidationError('Solo puedes entregar un pedido activo.')
+    if entry.status=='delivered_due':return False
+    if not entry.outstanding:return complete_delivery(entry,actor)
+    entry.status='delivered_due'
+    entry.save(update_fields=['status','updated_at'])
+    EntryActivity.objects.create(entry=entry,label='Entregado con saldo pendiente',note=f'Saldo por cobrar: {entry.outstanding:.2f} COP. No se registró un pago.',actor=actor)
+    schedule_dispatch(queue_order_email(entry,'delivered'))
+    return True

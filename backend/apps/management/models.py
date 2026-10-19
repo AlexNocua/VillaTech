@@ -1,13 +1,13 @@
 import uuid
 from django.db import models
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator,MaxValueValidator
 from apps.landing.validators import private_path, validate_image, validate_print_model
 
 class Entry(models.Model):
     KIND = [('quote','Cotización'),('sale','Venta'),('order','Pedido'),('expense','Gasto')]
     CATEGORY = [('filament','Compra de filamento'),('monthly','Pago mensual'),('maintenance','Mantenimiento'),('energy','Energía'),('software','Software y licencias'),('supplies','Insumos'),('services','Servicios'),('other','Otro')]
-    STATUS = [('draft','Borrador'),('quoted','Preparada'),('sent','Enviada'),('expired','Vencida'),('sold','Vendido'),('pending','Pendiente'),('printing','En impresión'),('ready','Listo'),('delivered','Entregado'),('cancelled','Cancelado')]
+    STATUS = [('draft','Borrador'),('quoted','Preparada'),('sent','Enviada'),('expired','Vencida'),('sold','Vendido'),('pending','Pendiente'),('printing','En impresión'),('ready','Listo'),('delivered','Entregado'),('delivered_due','Entregado sin pagar'),('cancelled','Cancelado')]
     kind = models.CharField('Tipo', max_length=10, choices=KIND)
     title = models.CharField('Descripción', max_length=150)
     description = models.TextField('Descripción del producto / proyecto', blank=True)
@@ -25,6 +25,7 @@ class Entry(models.Model):
     acquired_filament_g = models.DecimalField('Filamento adquirido (g)', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     updated_at = models.DateTimeField(auto_now=True)
     image = models.ImageField('Imagen de referencia', upload_to=private_path, blank=True, validators=[validate_image])
+    final_image = models.ImageField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
     quotation_pdf = models.FileField(upload_to=private_path, blank=True, editable=False)
     logo_theme = models.CharField('Logo del PDF', max_length=5, choices=[('light','Blanco'),('dark','Negro')], default='light')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -53,6 +54,12 @@ class Entry(models.Model):
             if not self.sold_at:self.sold_at=timezone.now()
         super().save(*args,**kwargs)
     @property
+    def delivered_unpaid(self):
+        return self.status=='delivered_due' and self.outstanding>0
+    @property
+    def can_review(self):
+        return self.kind=='sale' or self.status in ('delivered','delivered_due')
+    @property
     def payment_status(self):
         if self.kind not in ('order','sale') or self.status=='cancelled':return 'not_applicable'
         if self.amount<=0:return 'no_charge'
@@ -68,7 +75,7 @@ class Entry(models.Model):
     def delivery_alert(self):
         from django.utils import timezone
         from datetime import timedelta
-        if self.kind != 'order' or self.status in ('delivered','cancelled','sold'):
+        if self.kind != 'order' or self.status in ('delivered','delivered_due','cancelled','sold'):
             return ''
         if not self.estimated_delivery_date:
             return 'Sin fecha'
@@ -106,6 +113,7 @@ class QuoteItem(models.Model):
     quantity = models.PositiveIntegerField('Cantidad',default=1,validators=[MinValueValidator(1)])
     unit_price = models.DecimalField('Precio unitario COP',max_digits=12,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     image = models.ImageField('Imagen del producto',upload_to=private_path,blank=True,validators=[validate_image])
+    final_image = models.ImageField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
     description = models.TextField('Descripción y acabado', blank=True)
     unit_filament_g = models.DecimalField('Filamento por unidad g',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     unit_print_hours = models.DecimalField('Horas por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
@@ -199,3 +207,30 @@ class PrintingModel(models.Model):
     created_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
     created_at=models.DateTimeField(auto_now_add=True)
     class Meta:ordering=['-created_at']
+
+
+class ProductReview(models.Model):
+    entry=models.ForeignKey(Entry,on_delete=models.CASCADE,related_name='reviews')
+    item=models.ForeignKey(QuoteItem,on_delete=models.SET_NULL,null=True,blank=True,related_name='reviews')
+    subject_key=models.CharField(max_length=32)
+    token=models.UUIDField(default=uuid.uuid4,unique=True,editable=False)
+    product=models.ForeignKey('landing.Product',on_delete=models.SET_NULL,null=True,blank=True)
+    product_title=models.CharField('Título del producto',max_length=160)
+    quantity=models.PositiveIntegerField(default=1)
+    reference_image=models.ImageField('Imagen de referencia',upload_to=private_path,blank=True,validators=[validate_image])
+    final_image=models.ImageField('Imagen del producto final',upload_to=private_path,blank=True,validators=[validate_image])
+    full_name=models.CharField('Nombre completo',max_length=255,blank=True)
+    rating=models.PositiveSmallIntegerField('Calificación',null=True,blank=True,validators=[MinValueValidator(1),MaxValueValidator(5)])
+    comment=models.TextField('Opinión (opcional)',blank=True,max_length=2000)
+    consent=models.BooleanField(default=False)
+    is_active=models.BooleanField('Enlace habilitado',default=True)
+    is_published=models.BooleanField('Publicar en la página',default=False)
+    submitted_at=models.DateTimeField(null=True,blank=True,editable=False)
+    created_at=models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering=['-submitted_at','-created_at']
+        constraints=[models.UniqueConstraint(fields=['entry','subject_key'],name='unique_entry_review_subject')]
+    @property
+    def stars(self):return range(self.rating or 0)
+    @property
+    def empty_stars(self):return range(5-(self.rating or 0))
