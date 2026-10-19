@@ -3,6 +3,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from . import views, commerce, model_library, calendar_views, reviews
 app_name='management'
 urlpatterns=[
+ path('desarrollo/<int:pk>/opinion/',reviews.prepare_software_review,name='prepare_software_review'),
  path('opiniones/',reviews.review_list,name='reviews'),
  path('opiniones/<int:pk>/',reviews.review_edit,name='review_edit'),
  path('opiniones/<int:pk>/accion/',reviews.review_action,name='review_action'),

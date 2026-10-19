@@ -1,1 +1,38 @@
-{% if customer_reviews %}<section id="opiniones" class="customer-reviews" aria-labelledby="reviews-title" data-story-stop><div class="container"><header class="customer-reviews-heading" data-review-reveal><div><p class="eyebrow">CREADO AQUÍ, DISFRUTADO ALLÁ</p><h2 id="reviews-title">Lo que piensan nuestros clientes.</h2><p>Ideas que se convirtieron en productos. Experiencias compartidas por quienes los recibieron.</p></div><div class="review-score"><span class="review-orbit" aria-hidden="true">✦</span><strong>{{ review_average|floatformat:1 }}<small>/ 5</small></strong><span aria-hidden="true">★</span><small>{{ review_count }} calificaciones de compras reales</small></div></header><div class="customer-review-grid">{% for review in customer_reviews %}<article class="customer-review-card" data-review-reveal><div class="review-photo-pair"><figure><img src="{% url 'management:review_image' review.pk 'reference' %}" alt="Referencia de {{ review.product_title }}" loading="lazy" decoding="async"><figcaption>La idea</figcaption></figure><figure><img src="{% url 'management:review_image' review.pk 'final' %}" alt="Producto final {{ review.product_title }}" loading="lazy" decoding="async"><figcaption>El resultado</figcaption></figure></div><div class="customer-review-content"><p class="review-stars" aria-label="{{ review.rating }} de 5 estrellas">{% for star in review.stars %}★{% endfor %}{% for star in review.empty_stars %}☆{% endfor %}</p><h3>{{ review.product_title }}</h3>{% if review.comment %}<blockquote>{{ review.comment|linebreaksbr }}</blockquote>{% endif %}<footer><strong>{{ review.full_name }}</strong><time datetime="{{ review.submitted_at|date:'Y-m-d' }}">{{ review.submitted_at|date:'d/m/Y' }}</time><small>Compra verificada · {{ review.quantity }} unidades</small></footer></div></article>{% endfor %}</div></div></section>{% endif %}
+{% load l10n %}
+{% if customer_reviews %}
+<section id="opiniones" class="customer-reviews reviews-v18" aria-labelledby="reviews-title" data-story-stop data-average="{{ review_average|unlocalize }}">
+  <div class="reviews-landscape" aria-hidden="true"><span></span><span></span><svg viewBox="0 0 1400 300" preserveAspectRatio="none"><path d="M-40 220Q300 40 620 170T1440 80"/><path d="M-40 250Q350 100 680 220T1440 130"/></svg></div>
+  <div class="container reviews-shell">
+    <header class="customer-reviews-heading">
+      <div class="reviews-copy">
+        <p class="eyebrow" data-review-intro><span class="reviews-status-dot" aria-hidden="true"></span> EXPERIENCIAS QUE NOS INSPIRAN</p>
+        <h2 id="reviews-title" data-review-intro>Lo que piensan<br>nuestros <span>clientes.</span></h2>
+        <p class="reviews-description" data-review-intro>De una idea a una pieza. De un reto a una solución digital. Así viven nuestros clientes lo que creamos en VillaTech.</p>
+        <div class="reviews-summary" data-review-intro>
+          <div class="reviews-score-number"><span data-review-counter aria-hidden="true">{{ review_average|floatformat:1 }}</span><span class="sr-only">{{ review_average|floatformat:1 }}</span><small>/ 5</small></div>
+          <div><strong>Calificación de nuestros clientes</strong><small>{{ review_count }} experiencias publicadas · productos y desarrollos</small></div>
+        </div>
+      </div>
+      <div class="reviews-motion-stage" aria-hidden="true">
+        <div class="reviews-orbit-ring"></div><div class="reviews-orbit-ring reviews-orbit-ring--small"></div>
+        <svg class="reviews-conversation-path" viewBox="0 0 440 360"><path d="M80 240C0 140 160 30 280 85S470 280 310 315" fill="none"/><circle class="reviews-spark" cx="45" cy="150" r="5"/><circle class="reviews-spark" cx="350" cy="70" r="7"/><path class="reviews-spark" d="m370 275 6 12 13 2-10 9 3 14-12-7-12 7 2-14-10-9 14-2Z"/></svg>
+        <div class="reviews-feedback-bubble"><svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v10H9l-4 4V5Z"/><path d="M9 9h6M9 12h4"/></svg><span>Tu opinión<br><strong>nos inspira.</strong></span><i></i></div>
+        <div class="reviews-rating-bubble"><span class="reviews-quote-mark">“</span><small>HECHO CON DEDICACIÓN</small><strong>Ideas que<br>cobran vida.</strong><div class="reviews-scene-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div><span class="reviews-scene-note">Impresión 3D + Software</span></div>
+        <div class="reviews-verified-bubble"><span>✓</span> Experiencias reales</div>
+      </div>
+    </header>
+    <div class="reviews-toolbar"><div class="reviews-filters" hidden role="group" aria-label="Tipo de opinión"><button type="button" data-review-filter="all" aria-pressed="true">Todas las experiencias</button><button type="button" data-review-filter="product" aria-pressed="false">Impresión 3D</button><button type="button" data-review-filter="software" aria-pressed="false">Software y desarrollos</button></div><button type="button" class="reviews-motion-toggle" data-reviews-motion aria-pressed="false" hidden>Pausar animación</button></div>
+    <p class="sr-only" data-review-filter-status role="status" aria-live="polite"></p>
+    <div class="customer-review-grid">
+      {% for review in customer_reviews %}
+      <article class="customer-review-card" data-review-card data-review-kind="{{ review.review_type }}">
+        <div class="reviews-card-media"><div class="review-photo-pair"><figure><img src="{% url 'management:review_image' review.pk 'reference' %}" alt="{{ review.reference_label }} de {{ review.product_title }}" loading="lazy" decoding="async"><figcaption>{{ review.reference_label }}</figcaption></figure><span class="reviews-result-arrow" aria-hidden="true">↗</span><figure><img src="{% url 'management:review_image' review.pk 'final' %}" alt="{{ review.final_label }}: {{ review.product_title }}" loading="lazy" decoding="async"><figcaption>{{ review.final_label }}</figcaption></figure></div><span class="reviews-kind-badge">{% if review.review_type == 'software' %}Software / desarrollo{% else %}Impresión 3D{% endif %}</span></div>
+        <div class="customer-review-content"><div class="reviews-rating-line"><p class="review-stars" aria-label="{{ review.rating }} de 5 estrellas">{% for star in review.stars %}<span class="is-filled" aria-hidden="true">★</span>{% endfor %}{% for star in review.empty_stars %}<span class="is-empty" aria-hidden="true">☆</span>{% endfor %}</p><span class="reviews-card-quote" aria-hidden="true">“</span></div><h3>{{ review.product_title }}</h3>{% if review.comment %}<blockquote>{{ review.comment|linebreaksbr }}</blockquote>{% endif %}<footer><div class="reviews-avatar" aria-hidden="true">{{ review.full_name|first|upper }}</div><div class="reviews-author"><strong>{{ review.full_name }}</strong><small><span aria-hidden="true">✓</span> {{ review.verified_label }}</small></div><time datetime="{{ review.submitted_at|date:'Y-m-d' }}">{{ review.submitted_at|date:'d/m/Y' }}</time></footer></div>
+      </article>
+      {% endfor %}
+    </div>
+    <p class="reviews-filter-empty" data-review-filter-empty hidden>Aún no hay experiencias publicadas en esta categoría.</p>
+    <p class="reviews-closing">Cada pieza y cada desarrollo cuentan una historia. <span>Gracias por dejarnos ser parte de la tuya.</span></p>
+  </div>
+</section>
+{% endif %}

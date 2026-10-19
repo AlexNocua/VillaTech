@@ -1,3 +1,6 @@
+## V18 — Opiniones con Anime.js y desarrollos de software
+Lee `LEEME_OPINIONES_ANIMADAS_SOFTWARE_V18.md`. Aplica la migración management/0020 antes de reiniciar.
+
 ## V17 — Entregas pendientes de pago y opiniones
 Lee `LEEME_ENTREGAS_OPINIONES_V17.md`. Es obligatorio aplicar la migración management/0019.
 

@@ -210,7 +210,10 @@ class PrintingModel(models.Model):
 
 
 class ProductReview(models.Model):
-    entry=models.ForeignKey(Entry,on_delete=models.CASCADE,related_name='reviews')
+    entry=models.ForeignKey(Entry,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
+    development=models.ForeignKey(DevelopmentProject,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
+    review_type=models.CharField('Tipo de experiencia',max_length=10,choices=[('product','Impresión 3D / producto'),('software','Software / desarrollo')],default='product')
+    public_summary=models.TextField('Descripción pública (opcional)',blank=True,max_length=1000)
     item=models.ForeignKey(QuoteItem,on_delete=models.SET_NULL,null=True,blank=True,related_name='reviews')
     subject_key=models.CharField(max_length=32)
     token=models.UUIDField(default=uuid.uuid4,unique=True,editable=False)
@@ -229,8 +232,23 @@ class ProductReview(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering=['-submitted_at','-created_at']
-        constraints=[models.UniqueConstraint(fields=['entry','subject_key'],name='unique_entry_review_subject')]
+        constraints=[models.UniqueConstraint(fields=['entry','subject_key'],name='unique_entry_review_subject'),models.UniqueConstraint(fields=['development','subject_key'],name='unique_project_review_subject'),models.CheckConstraint(condition=(models.Q(entry__isnull=False,development__isnull=True)|models.Q(entry__isnull=True,development__isnull=False)),name='review_has_one_origin')]
     @property
     def stars(self):return range(self.rating or 0)
     @property
     def empty_stars(self):return range(5-(self.rating or 0))
+
+    @property
+    def can_review(self):return self.entry.can_review if self.entry_id else self.development.status=='delivered' if self.development_id else False
+    @property
+    def customer_name(self):return self.entry.customer if self.entry_id else self.development.customer if self.development_id else ''
+    @property
+    def origin_label(self):return f'Pedido VT-{self.entry_id}' if self.entry_id else f'Proyecto SW-{self.development_id}'
+    @property
+    def subject_word(self):return 'proyecto' if self.review_type=='software' else 'producto'
+    @property
+    def verified_label(self):return 'Desarrollo verificado' if self.review_type=='software' else 'Compra verificada'
+    @property
+    def final_label(self):return 'Software entregado' if self.review_type=='software' else 'Producto final'
+    @property
+    def reference_label(self):return 'Referencia / propuesta' if self.review_type=='software' else 'La idea'

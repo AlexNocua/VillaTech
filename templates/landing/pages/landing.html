@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block extra_css %}
-  {% if customer_reviews %}<link rel="stylesheet" href="{% static 'landing/css/components/reviews.css' %}?v=17">{% endif %}
+  {% if customer_reviews %}<link rel="stylesheet" href="{% static 'landing/css/components/reviews.css' %}?v=18">{% endif %}
   <link rel="stylesheet" href="{% static 'landing/css/components/hero.css' %}?v=4" />
   <link rel="stylesheet" href="{% static 'landing/css/components/services.css' %}" />
   <link rel="stylesheet" href="{% static 'landing/css/components/print-lab.css' %}?v=4" />
@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block extra_js %}
-  {% if customer_reviews %}<script src="{% static 'landing/js/reviews.js' %}?v=17" defer></script>{% endif %}
+  {% if customer_reviews %}<script type="module" src="{% static 'landing/js/reviews.js' %}?v=18"></script>{% endif %}
   <script src="{% static 'landing/js/catalog.js' %}?v=15" defer></script>
   <script src="{% static 'landing/js/file-uploader.js' %}?v=11" defer></script>
 {% endblock %}

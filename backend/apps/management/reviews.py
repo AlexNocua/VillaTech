@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST,require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from .views import staff_only
-from .models import Entry,QuoteItem,ProductReview,Payment,EntryActivity
+from .models import Entry,QuoteItem,ProductReview,Payment,EntryActivity,DevelopmentProject
 from .workflow import complete_delivery
 from apps.landing.models import Product
 
@@ -28,12 +28,19 @@ class ItemPhotosForm(EntryPhotosForm):
 class ReviewSetupForm(forms.ModelForm):
     class Meta:
         model=ProductReview
-        fields=['product','product_title','reference_image','final_image','is_active']
+        fields=['review_type','product','product_title','public_summary','reference_image','final_image','is_active']
     def __init__(self,*args,**kwargs):
+        data=args[0] if args else kwargs.get('data')
+        if data is not None and not data.get('review_type'):
+            data=data.copy();data['review_type']=getattr(kwargs.get('instance'),'review_type','product')
+            if args:args=(data,)+args[1:]
+            else:kwargs['data']=data
         super().__init__(*args,**kwargs)
         self.fields['product_title'].required=False
-        self.fields['product'].label='Producto del inventario (opcional)'
-        self.fields['product_title'].help_text='Este título lo defines tú; el cliente solo escribe su nombre, califica y deja su opinión.'
+        self.fields['product'].label='Producto del inventario (si aplica)'
+        self.fields['product_title'].label='Título del producto o desarrollo'
+        if self.instance.development_id:self.fields['review_type'].disabled=True
+        self.fields['product_title'].help_text='Define el título público de la pieza o del desarrollo; el cliente solo escribe su nombre, califica y deja su opinión.'
         self.fields['reference_image'].required=not bool(self.instance.reference_image)
         self.fields['final_image'].required=not bool(self.instance.final_image)
         self.fields['is_active'].help_text='Desmárcalo para revocar el acceso al formulario.'
@@ -92,12 +99,14 @@ def settle_delivered(request,pk):
 @staff_only
 def review_list(request):
     from django.core.paginator import Paginator
-    entries=ProductReview.objects.select_related('entry','product','item')
+    entries=ProductReview.objects.select_related('entry','development','product','item')
+    review_type=request.GET.get('type','')
+    if review_type in ('product','software'):entries=entries.filter(review_type=review_type)
     state=request.GET.get('state','')
     if state=='pending':entries=entries.filter(submitted_at__isnull=True)
     elif state=='received':entries=entries.filter(submitted_at__isnull=False,is_published=False)
     elif state=='published':entries=entries.filter(is_published=True)
-    return render(request,'management/reviews.html',{'page':Paginator(entries,25).get_page(request.GET.get('page')),'state':state})
+    return render(request,'management/reviews.html',{'page':Paginator(entries,25).get_page(request.GET.get('page')),'state':state,'review_type':review_type})
 
 @staff_only
 @require_POST
@@ -117,7 +126,7 @@ def prepare_review(request,pk,item_pk=None):
 @staff_only
 @require_http_methods(['GET','POST'])
 def review_edit(request,pk):
-    review=get_object_or_404(ProductReview.objects.select_related('entry'),pk=pk)
+    review=get_object_or_404(ProductReview.objects.select_related('entry','development'),pk=pk)
     form=ReviewSetupForm(request.POST or None,request.FILES or None,instance=review)
     if request.method=='POST':
         with transaction.atomic():
@@ -128,7 +137,7 @@ def review_edit(request,pk):
             elif form.is_valid():
                 form.save();messages.success(request,'Invitación guardada. Ya puedes compartir el enlace con el cliente.')
                 return redirect('management:review_edit',pk=pk)
-    return render(request,'management/review_edit.html',{'review':review,'form':form,'products_data':list(Product.objects.values('id','name')),'share_url':review_link(review) if review.reference_image and review.final_image and review.is_active else ''})
+    return render(request,'management/review_edit.html',{'review':review,'form':form,'products_data':list(Product.objects.values('id','name')),'share_url':review_link(review) if review.reference_image and review.final_image and review.is_active and review.can_review else ''})
 
 @staff_only
 @require_POST
@@ -148,15 +157,17 @@ def review_action(request,pk):
 @ensure_csrf_cookie
 @require_http_methods(['GET','POST'])
 def customer_review(request,token):
-    review=get_object_or_404(ProductReview.objects.select_related('entry'),token=token,is_active=True)
-    if not review.entry.can_review:raise Http404
-    form=CustomerReviewForm(request.POST or None,initial={'full_name':review.entry.customer})
+    review=get_object_or_404(ProductReview.objects.select_related('entry','development'),token=token,is_active=True)
+    if not review.can_review:raise Http404
+    form=CustomerReviewForm(request.POST or None,initial={'full_name':review.customer_name})
+    form.fields['rating'].label=f'Califica tu {review.subject_word}'
+    if review.review_type=='software':form.fields['consent'].label=form.fields['consent'].label.replace('este producto','este desarrollo')
     if not review.reference_image or not review.final_image:raise Http404
     if request.method=='POST' and not review.submitted_at and form.is_valid():
         with transaction.atomic():
             review=ProductReview.objects.select_for_update().get(pk=review.pk)
             if review.token!=token or not review.is_active:raise Http404
-            if review.entry.can_review and not review.submitted_at:
+            if review.can_review and not review.submitted_at:
                 for field in ('full_name','rating','comment','consent'):setattr(review,field,form.cleaned_data[field])
                 review.submitted_at=timezone.now();review.is_published=False
                 review.save(update_fields=['full_name','rating','comment','consent','submitted_at','is_published'])
@@ -170,7 +181,7 @@ def review_image(request,pk,kind):
     review=get_object_or_404(ProductReview,pk=pk)
     allowed=published_reviews().filter(pk=pk).exists() or (request.user.is_authenticated and request.user.is_active and request.user.is_staff)
     if not allowed:
-        try:allowed=review.is_active and review.entry.can_review and uuid.UUID(request.GET.get('token',''))==review.token
+        try:allowed=review.is_active and review.can_review and uuid.UUID(request.GET.get('token',''))==review.token
         except (ValueError,TypeError,AttributeError):allowed=False
     if not allowed:raise Http404
     image=review.reference_image if kind=='reference' else review.final_image if kind=='final' else None
@@ -190,3 +201,18 @@ def entry_photo(request,pk,kind,item_pk=None):
     except OSError:raise Http404 from None
     response['Cache-Control']='private, no-store';response['X-Content-Type-Options']='nosniff'
     return response
+
+
+@staff_only
+@require_POST
+def prepare_software_review(request,pk):
+    with transaction.atomic():
+        project=get_object_or_404(DevelopmentProject.objects.select_for_update(),pk=pk)
+        if project.status!='delivered':
+            messages.error(request,'Finaliza el desarrollo antes de preparar la opinión del cliente.')
+            return redirect('management:development_edit',pk=pk)
+        review,created=ProductReview.objects.get_or_create(development=project,subject_key='project',defaults={'review_type':'software','product_title':project.name,'quantity':1})
+        if created:
+            shot=project.screenshots.order_by('-created_at','-pk').first()
+            if shot:copy_image(shot.image,review.final_image)
+    return redirect('management:review_edit',pk=review.pk)

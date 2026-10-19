@@ -382,7 +382,7 @@ def development(request,pk=None):
                 for uploaded in uploads:ProjectScreenshot.objects.create(project=project,image=uploaded)
             messages.success(request,'Proyecto y capturas guardados.')
             return redirect('management:development')
-    projects=DevelopmentProject.objects.prefetch_related('screenshots').all()
+    projects=DevelopmentProject.objects.prefetch_related('screenshots','reviews').all()
     return render(request,'management/development.html',{'projects':projects,'form':form,'editing':project})
 
 @staff_only
