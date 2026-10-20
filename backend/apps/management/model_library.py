@@ -1,6 +1,7 @@
 from pathlib import Path
 import logging
 from django import forms
+from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse,FileResponse,Http404
 from django.shortcuts import get_object_or_404,render,redirect
@@ -14,7 +15,7 @@ class ModelForm(forms.ModelForm):
     class Meta:
         model=PrintingModel
         fields=['title','description','file']
-        widgets={'file':forms.FileInput(attrs={'accept':'.stl,.3mf'})}
+        widgets={'file':forms.FileInput(attrs={'accept':'.stl,.3mf','data-model-file':''})}
     def clean_file(self):
         file=self.cleaned_data['file']
         if Path(file.name).suffix.lower() not in ('.stl','.3mf'):raise forms.ValidationError('Carga un STL o 3MF de hasta 100 MB.')
@@ -24,8 +25,21 @@ class ModelForm(forms.ModelForm):
 def library(request):
     form=ModelForm(request.POST or None,request.FILES or None)
     if request.method=='POST' and form.is_valid():
-        asset=form.save(commit=False);asset.created_by=request.user;asset.original_name=Path(form.cleaned_data['file'].name).name;asset.save()
-        return redirect('management:model_library')
+        asset=form.save(commit=False)
+        asset.created_by=request.user
+        asset.original_name=Path(form.cleaned_data['file'].name).name[:255]
+        try:
+            # Geometry is deliberately not parsed while saving an upload.
+            with transaction.atomic():
+                asset.save()
+        except Exception:
+            logging.getLogger(__name__).exception('No se pudo guardar modelo 3D (usuario=%s)',request.user.pk)
+            if asset.file and asset.file._committed:
+                try: asset.file.storage.delete(asset.file.name)
+                except Exception: logging.getLogger(__name__).exception('No se pudo retirar archivo incompleto de modelo')
+            form.add_error(None,'No pudimos guardar el modelo. Revisa el almacenamiento disponible e intenta de nuevo. Los detalles quedaron en los logs; vuelve a seleccionar el archivo.')
+        else:
+            return redirect('management:model_library')
     rows=[]
     query=request.GET.get('q','').strip()[:150]
     def row(kind,obj,title,name):

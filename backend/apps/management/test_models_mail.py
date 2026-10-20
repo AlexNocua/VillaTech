@@ -94,3 +94,34 @@ class ModelsMailTests(TestCase):
         self.assertNotIn('private-secret',output.getvalue());self.assertEqual(len(mail.outbox),0)
         with override_settings(CONTACT_NOTIFICATION_EMAIL=''):
             with self.assertRaises(CommandError):call_command('check_mail_workflow',stdout=StringIO())
+
+    def test_upload_storage_failure_keeps_form_and_logs_error(self):
+        with patch('django.core.files.storage.FileSystemStorage._save',side_effect=OSError('disk full')),self.assertLogs('apps.management.model_library',level='ERROR'):
+            response=self.client.post(reverse('management:model_library'),{'title':'Conservar título','description':'Conservar descripción','file':SimpleUploadedFile('figura.stl',ASCII)})
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,'No pudimos guardar el modelo')
+        self.assertContains(response,'Conservar título')
+        self.assertNotContains(response,'disk full')
+        self.assertFalse(PrintingModel.objects.exists())
+
+    def test_saving_model_does_not_parse_geometry(self):
+        with patch('apps.management.model_library.solid_mesh_preview',side_effect=AssertionError('must not parse')):
+            response=self.client.post(reverse('management:model_library'),{'title':'Archivo','file':SimpleUploadedFile('figura.stl',ASCII)})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(PrintingModel.objects.count(),1)
+
+    def test_preview_deadline_returns_useful_error_and_preserves_file(self):
+        from .mesh_preview import solid_mesh_preview
+        with patch('apps.management.mesh_preview.PREVIEW_SECONDS',-1):
+            with self.assertRaisesMessage(ValidationError,'Descarga el original'):
+                solid_mesh_preview(SimpleUploadedFile('figura.stl',ASCII))
+
+    def test_opinions_are_temporary_break_before_final_story_scenes(self):
+        from pathlib import Path
+        from django.conf import settings
+        template=Path(settings.BASE_DIR_TEMPLATES)/'templates/landing/components/reviews.html'
+        if not template.exists():
+            template=Path(settings.BASE_DIR_TEMPLATES)/'landing/components/reviews.html'
+        text=template.read_text()
+        self.assertIn('data-story-break',text)
+        self.assertNotIn('data-story-stop',text)

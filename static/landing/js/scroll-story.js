@@ -219,7 +219,7 @@ if (storyRoot && storyElement) {
         const { reduceMotion, isSmall, isCompact } = scope.matches;
         const cleanupCallbacks = [];
         const sections = Array.from(storyRoot.querySelectorAll("[data-story-stage]"));
-        const storyStop = storyRoot.querySelector("[data-story-stop]");
+        const storyStops = Array.from(storyRoot.querySelectorAll("[data-story-stop]"));
         const storyBreaks = Array.from(storyRoot.querySelectorAll("[data-story-break]"));
         const scenes = new Map(
             Array.from(storyElement.querySelectorAll("[data-story-scene]"))
@@ -643,7 +643,7 @@ if (storyRoot && storyElement) {
 
         let boundaryFrame = 0;
         updateStoryBoundary = () => {
-            const stopTop = storyStop ? storyStop.getBoundingClientRect().top : Number.POSITIVE_INFINITY;
+            const stopTop = Math.min(...storyStops.map(section => section.getBoundingClientRect().top));
             const breakActive = storyBreaks.some((section) => {
                 const bounds = section.getBoundingClientRect();
                 return bounds.top <= window.innerHeight * 0.72 && bounds.bottom >= window.innerHeight * 0.28;
@@ -664,6 +664,9 @@ if (storyRoot && storyElement) {
             });
         };
 
+        const layoutObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(scheduleStoryBoundary) : null;
+        layoutObserver?.observe(storyRoot);
+        cleanupCallbacks.push(() => layoutObserver?.disconnect());
         window.addEventListener("scroll", scheduleStoryBoundary, { passive: true });
         window.addEventListener("resize", scheduleStoryBoundary, { passive: true });
         cleanupCallbacks.push(() => {

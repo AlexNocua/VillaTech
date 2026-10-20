@@ -1,5 +1,6 @@
 """Bounded geometric preview; original files are never modified."""
 import math
+import time
 import re
 import struct
 import zipfile
@@ -15,19 +16,27 @@ MAX_REFERENCED_XML=1024*1024*1024
 MAX_GEOMETRY_BYTES=192*1024*1024
 MAX_TRIANGLES=5000000
 SAMPLE=12000
+PREVIEW_SECONDS=8
+
+def check_deadline(deadline):
+    if deadline is not None and time.monotonic()>deadline:
+        raise ValidationError('El modelo se guardó, pero su geometría requiere más tiempo del disponible para la vista previa. Descarga el original para abrirlo en tu laminador.')
+
 
 def mesh_preview(field):
+    deadline=time.monotonic()+PREVIEW_SECONDS
     if field.size>MAX_FILE:raise ValidationError('El archivo supera el límite de vista previa de 100 MB.')
     with field.open('rb') as file:
         extension=Path(field.name).suffix.lower()
         if extension=='.stl':triangles=stl_triangles(file.read(MAX_FILE+1))
-        elif extension=='.3mf':triangles=three_mf_triangles(file)
+        elif extension=='.3mf':triangles=three_mf_triangles(file,deadline)
         else:raise ValidationError('La vista 3D admite STL y 3MF; puedes descargar los demás formatos.')
         low=[math.inf]*3;high=[-math.inf]*3;sample=[];count=0
         # Deterministic reservoir thinning bounds memory while scanning all bounds.
         stride=1
         for triangle in triangles:
             count+=1
+            if count%1024==1:check_deadline(deadline)
             if count>MAX_TRIANGLES:raise ValidationError('Modelo demasiado complejo para esta vista. Descarga el original.')
             for point in triangle:
                 for axis,value in enumerate(point):
@@ -61,7 +70,7 @@ def stl_triangles(data):
     if group:raise ValidationError('STL incompleto.')
 
 
-def three_mf_triangles(file):
+def three_mf_triangles(file,deadline=None):
     factors={'micron':.001,'millimeter':1,'centimeter':10,'inch':25.4,'foot':304.8,'meter':1000}
     identity=[1,0,0,0,1,0,0,0,1,0,0,0]
     def matrix(text):
@@ -88,7 +97,7 @@ def three_mf_triangles(file):
                     raise ValidationError('La geometría supera el límite de lectura de esta vista. Descarga el original.')
                 xml_bytes+=info.file_size
                 with archive.open(name) as stream:
-                    root=parse_3mf_xml(stream,geometry_budget)
+                    root=parse_3mf_xml(stream,geometry_budget,deadline)
                 unit=root['unit']
                 if unit not in factors:raise ValidationError('Unidad 3MF no reconocida.')
                 models[name]=(root,root['objects'],factors[unit])
@@ -120,7 +129,7 @@ def three_mf_triangles(file):
             yield from expand(resolve(item,root_name),item['objectid'],[matrix(item.get('transform'))],[])
 
 
-def parse_3mf_xml(stream,budget):
+def parse_3mf_xml(stream,budget,deadline=None):
     """Parse only geometry/build records; ignore text, textures and slicer data.
 
     Compact numeric arrays replace a full XML tree. The budget is shared by
@@ -169,6 +178,7 @@ def parse_3mf_xml(stream,budget):
     parser=ET.XMLParser(target=Target())
     read=0
     while True:
+        check_deadline(deadline)
         chunk=stream.read(65536)
         if not chunk:break
         read+=len(chunk)
@@ -185,6 +195,7 @@ def solid_mesh_preview(field):
     The temporary file is owned/closed by the response, including on failure.
     """
     import tempfile
+    deadline=time.monotonic()+PREVIEW_SECONDS
     if field.size>MAX_FILE:raise ValidationError('El archivo supera el límite de vista previa de 100 MB.')
     output=tempfile.TemporaryFile(mode='w+b')
     try:
@@ -193,10 +204,11 @@ def solid_mesh_preview(field):
         extension=Path(field.name).suffix.lower()
         with field.open('rb') as file:
             if extension=='.stl':triangles=stl_triangles(file.read(MAX_FILE+1))
-            elif extension=='.3mf':triangles=three_mf_triangles(file)
+            elif extension=='.3mf':triangles=three_mf_triangles(file,deadline)
             else:raise ValidationError('La vista 3D admite STL y 3MF.')
             for triangle in triangles:
                 count+=1
+                if count%1024==1:check_deadline(deadline)
                 if count>MAX_TRIANGLES:raise ValidationError('Modelo demasiado complejo para esta vista sólida. Descarga el original.')
                 coordinates=[]
                 for point in triangle:
