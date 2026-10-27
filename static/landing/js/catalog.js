@@ -94,6 +94,8 @@
     var selected = document.getElementById('contact-reference-product');
     var form = document.querySelector('[data-contact-form]');
     var appliedText = '';
+    var detailImage = document.getElementById('catalog-dialog-image');
+    if (detailImage) detailImage.addEventListener('error', function() { detailImage.hidden = true; document.getElementById('catalog-dialog-placeholder').hidden = false; });
     function selection(product){
         var panel=document.getElementById('contact-product-selection');
         if(!panel)return;
@@ -125,8 +127,8 @@
             event.preventDefault();document.getElementById('catalog-dialog-title').textContent=product.name;
             document.getElementById('catalog-dialog-category').textContent=product.category;
             document.getElementById('catalog-dialog-description').textContent=product.description;
-            document.getElementById('catalog-dialog-price').textContent='Precio de referencia: '+new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(product.price));
-            var image=document.getElementById('catalog-dialog-image');image.hidden=!product.image;if(product.image)image.src=product.image;else image.removeAttribute('src');image.alt=product.name;
+            document.getElementById('catalog-dialog-price').textContent=new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(Number(product.price));
+            var image=document.getElementById('catalog-dialog-image');image.hidden=!product.image;if(product.image)image.src=product.image;else image.removeAttribute('src');image.alt=product.name;document.getElementById('catalog-dialog-placeholder').hidden=!!product.image;
             var button=document.getElementById('catalog-dialog-quote');button.dataset.productId=product.id;button.href='?product='+encodeURIComponent(product.id)+'#contacto';
             if(!dialog.open)dialog.showModal();
         }

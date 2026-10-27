@@ -15,7 +15,7 @@ MONTHS=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septi
 
 @staff_only
 @require_GET
-def calendar_view(request):
+def calendar_view(request, delivery_only=False):
     today=timezone.localdate()
     try:
         selected=date.fromisoformat(request.GET.get('date',''))
@@ -23,7 +23,7 @@ def calendar_view(request):
     except (ValueError,TypeError):selected=today
     mode=request.GET.get('view','month')
     if mode not in ('day','week','month'):mode='month'
-    basis=request.GET.get('basis','created')
+    basis='delivery' if delivery_only else request.GET.get('basis','created')
     if basis not in ('created','delivery'):basis='created'
     if mode=='month':
         weeks=calendar.Calendar(firstweekday=0).monthdatescalendar(selected.year,selected.month)
@@ -38,6 +38,7 @@ def calendar_view(request):
         previous,following=selected-(end-start),selected+(end-start)
         heading=f'{start:%d/%m/%Y}' if mode=='day' else f'{start:%d/%m} – {(end-timedelta(days=1)):%d/%m/%Y}'
     entries=Entry.objects.filter(kind__in=['order','sale']).prefetch_related('items')
+    if delivery_only:entries=entries.filter(kind='order',status__in=['pending','printing','ready'])
     status=request.GET.get('status','');payment=request.GET.get('payment','');query=request.GET.get('q','').strip()[:150]
     if status in dict(Entry.STATUS):entries=entries.filter(status=status)
     entries=filter_payment(entries,payment)
@@ -47,10 +48,25 @@ def calendar_view(request):
     else:
         zone=timezone.get_current_timezone()
         visible=entries.filter(created_at__gte=timezone.make_aware(datetime.combine(start,time.min),zone),created_at__lt=timezone.make_aware(datetime.combine(end,time.min),zone)).order_by('created_at')
+    urgency_counts = {'overdue': 0, 'today': 0, 'soon': 0}
+    upcoming = []
+    if delivery_only:
+        dated=entries.filter(estimated_delivery_date__isnull=False)
+        urgency_counts['overdue']=dated.filter(estimated_delivery_date__lt=today).count()
+        urgency_counts['today']=dated.filter(estimated_delivery_date=today).count()
+        urgency_counts['soon']=dated.filter(estimated_delivery_date__gt=today,estimated_delivery_date__lte=today+timedelta(days=7)).count()
+        for item in dated.filter(estimated_delivery_date__lte=today+timedelta(days=7)).order_by('estimated_delivery_date','pk')[:8]:
+            diff=(item.estimated_delivery_date-today).days
+            label='Vencido' if diff<0 else 'Hoy' if diff==0 else 'Mañana' if diff==1 else f'En {diff} días'
+            upcoming.append({'id':item.pk,'title':item.title,'customer':item.customer or 'Cliente por definir','date':item.estimated_delivery_date,'label':label,'urgency':'overdue' if diff<0 else 'today' if diff==0 else 'soon','url':reverse('management:workflow_detail',args=[item.pk])})
     grouped={};events=[]
     for entry in visible:
         day=entry.estimated_delivery_date if basis=='delivery' else timezone.localtime(entry.created_at).date()
         event={'time':timezone.localtime(entry.created_at).strftime('%H:%M') if basis=='created' else 'Sin hora','id':entry.pk,'title':entry.title,'customer':entry.customer or 'Cliente por definir','date':day.isoformat(),'status':entry.get_status_display(),'status_code':entry.status,'payment':entry.payment_label,'units':entry.total_units,'amount':str(entry.amount),'balance':str(entry.outstanding),'delivery':entry.estimated_delivery_date.isoformat() if entry.estimated_delivery_date else 'Sin programar','url':reverse('management:workflow_detail',args=[entry.pk])}
+        if basis=='delivery' and entry.kind=='order' and entry.status in ('pending','printing','ready'):
+            diff=(day-today).days
+            event['urgency']='overdue' if diff<0 else 'today' if diff==0 else 'soon' if diff<=7 else 'later'
+            event['urgency_label']='Vencido' if diff<0 else 'Entrega hoy' if diff==0 else 'Mañana' if diff==1 else f'En {diff} días' if diff<=7 else ''
         grouped.setdefault(day,[]).append(event);events.append(event)
     def link(**changes):
         params=request.GET.copy();params['view']=mode;params['date']=selected.isoformat();params['basis']=basis
@@ -59,4 +75,4 @@ def calendar_view(request):
     rows=[]
     for week in weeks:
         rows.append([{'date':day,'today':day==today,'selected':day==selected,'outside':day.month!=selected.month,'events':grouped.get(day,[]),'url':link(date=day.isoformat())} for day in week])
-    return render(request,'management/calendar.html',{'rows':rows,'events':events,'selected_events':grouped.get(selected,[]),'selected':selected,'mode':mode,'basis':basis,'heading':heading,'today':today,'previous_url':link(date=previous.isoformat()),'next_url':link(date=following.isoformat()),'today_url':link(date=today.isoformat()),'view_links':[{'key':key,'label':label,'url':link(view=key)} for key,label in [('day','Día'),('week','Semana'),('month','Mes')]],'status':status,'statuses':[(key,label) for key,label in Entry.STATUS if key in ('pending','printing','ready','delivered','delivered_due','sold','cancelled')],'payment':payment,'payment_choices':PAYMENT_CHOICES,'query':query,'undated':undated,'undated_url':reverse('management:workflow')+'?'+urlencode({'stage':'orders','due':'undated','q':query,'status':status,'payment':payment}),'total':len(events)})
+    return render(request,'management/calendar.html',{'rows':rows,'events':events,'selected_events':grouped.get(selected,[]),'selected':selected,'mode':mode,'basis':basis,'heading':heading,'today':today,'previous_url':link(date=previous.isoformat()),'next_url':link(date=following.isoformat()),'today_url':link(date=today.isoformat()),'view_links':[{'key':key,'label':label,'url':link(view=key)} for key,label in [('day','Día'),('week','Semana'),('month','Mes')]],'status':status,'statuses':[(key,label) for key,label in Entry.STATUS if key in ('pending','printing','ready','delivered','delivered_due','sold','cancelled')],'payment':payment,'payment_choices':PAYMENT_CHOICES,'query':query,'undated':undated,'undated_url':reverse('management:workflow')+'?'+urlencode({'stage':'orders','due':'undated','q':query,'status':status,'payment':payment}),'total':len(events),'delivery_only':delivery_only,'urgency_counts':urgency_counts,'upcoming':upcoming})

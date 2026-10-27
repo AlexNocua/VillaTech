@@ -17,6 +17,7 @@ urlpatterns=[
  path('flujo/<int:pk>/opinion/',reviews.prepare_review,name='prepare_review'),
  path('flujo/<int:pk>/producto/<int:item_pk>/opinion/',reviews.prepare_review,name='prepare_item_review'),
  path('calendario/',calendar_views.calendar_view,name='calendar'),
+ path('calendario/entregas/',calendar_views.calendar_view,{'delivery_only':True},name='delivery_calendar'),
  path('modelos/',model_library.library,name='model_library'),
  path('modelos/<str:kind>/<int:pk>/vista/',model_library.preview,name='model_preview'),
  path('modelos/<str:kind>/<int:pk>/descargar/',model_library.download,name='model_download'),

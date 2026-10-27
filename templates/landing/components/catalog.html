@@ -130,4 +130,10 @@
 </section>
 
 {{ catalog_data|json_script:'catalog-product-data' }}
-<dialog id="catalog-product-dialog" class="catalog-product-dialog" aria-labelledby="catalog-dialog-title"><button type="button" class="catalog-dialog-close" aria-label="Cerrar detalle" data-product-close>×</button><div class="catalog-dialog-grid"><img id="catalog-dialog-image" alt="" hidden><div><p id="catalog-dialog-category" class="eyebrow"></p><h2 id="catalog-dialog-title"></h2><p id="catalog-dialog-description" class="catalog-full-description"></p><p id="catalog-dialog-price"></p><a id="catalog-dialog-quote" class="button button--primary" data-catalog-quote>Cotizar este producto →</a></div></div></dialog>
+<dialog id="catalog-product-dialog" class="catalog-product-dialog" aria-labelledby="catalog-dialog-title" aria-describedby="catalog-dialog-description">
+  <button type="button" class="catalog-dialog-close" aria-label="Cerrar detalle" data-product-close>×</button>
+  <div class="catalog-dialog-grid">
+    <div class="catalog-dialog-visual"><span class="catalog-visual-ring" aria-hidden="true"></span><img id="catalog-dialog-image" alt="" hidden><div id="catalog-dialog-placeholder" class="catalog-dialog-placeholder" hidden><span aria-hidden="true">✦</span><span>Imagen no disponible</span></div><span class="catalog-visual-caption" aria-hidden="true">VILLATECH · HECHO PARA TI</span></div>
+    <div class="catalog-dialog-info"><p class="catalog-dialog-kicker">DISEÑADO PARA TI <span aria-hidden="true">✦</span></p><p id="catalog-dialog-category" class="eyebrow"></p><h2 id="catalog-dialog-title"></h2><div class="catalog-dialog-rule" aria-hidden="true"></div><p id="catalog-dialog-description" class="catalog-full-description"></p><div class="catalog-dialog-price-box"><small>INVERSIÓN DE REFERENCIA</small><strong id="catalog-dialog-price"></strong><span>Personalizamos tu idea y confirmamos el precio al cotizar.</span></div><a id="catalog-dialog-quote" class="button button--primary" data-catalog-quote>Cotizar este producto <span aria-hidden="true">↗</span></a></div>
+  </div>
+</dialog>
