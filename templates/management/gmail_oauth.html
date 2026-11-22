@@ -3,10 +3,10 @@
 <p class="eyebrow">CENTRO DE CORREOS</p>
 <h1>Autorización de Gmail</h1>
 <section class="panel">
-{% if configured %}
+{% if configured or can_initialize %}
   <p>Cuenta autorizada para este servicio: <strong>{{ gmail_account }}</strong>.</p>
   {% if authorization %}<p>Última autorización guardada: {{ authorization.updated_at|date:"d/m/Y H:i" }}. La fecha no confirma que Google siga aceptando el permiso.</p>{% endif %}
-  <p>Cuando cambies o revoques el permiso, repite este proceso. Google abrirá su pantalla de autorización.</p>
+  <p>Cuando cambies o revoques el permiso, repite este proceso. Google abrirá su pantalla de autorización. Si todavía no existe una clave, VillaTech la crea y la guarda antes de continuar.</p>
   <form method="post" action="{% url 'management:gmail_start' %}">
     {% csrf_token %}<button type="submit" class="primary">Autorizar o renovar con Google</button>
   </form>

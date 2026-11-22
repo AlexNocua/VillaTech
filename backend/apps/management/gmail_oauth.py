@@ -2,6 +2,9 @@
 import base64
 import hashlib
 import json
+import os
+import tempfile
+from pathlib import Path
 import secrets
 import time
 from urllib.parse import urlencode, urlsplit
@@ -23,9 +26,42 @@ STATE_KEY = 'gmail_web_oauth'
 SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 
 
+def key_path():
+    mount = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '')
+    if not mount or not Path(mount).is_absolute():
+        raise ValueError('Se necesita un volumen persistente en Django.')
+    directory = Path(mount).resolve() / '.villatech-secrets'
+    media = Path(settings.MEDIA_ROOT).resolve()
+    if directory == media or directory.is_relative_to(media):
+        raise ValueError('El almacén de claves debe estar fuera de MEDIA_ROOT.')
+    return directory / 'gmail-fernet.key'
+
+
 def cipher():
     from cryptography.fernet import Fernet
-    return Fernet(settings.GMAIL_TOKEN_ENCRYPTION_KEY.encode('ascii'))
+    if settings.GMAIL_TOKEN_ENCRYPTION_KEY:
+        return Fernet(settings.GMAIL_TOKEN_ENCRYPTION_KEY.encode('ascii'))
+    return Fernet(key_path().read_bytes())
+
+
+def provision_key():
+    """Publish a complete key atomically without replacing an existing key."""
+    from cryptography.fernet import Fernet
+    if settings.GMAIL_TOKEN_ENCRYPTION_KEY:
+        cipher()
+        return
+    target = key_path()
+    target.parent.mkdir(mode=0o700, exist_ok=True)
+    if not target.exists():
+        with tempfile.NamedTemporaryFile(dir=target.parent) as tmp:
+            tmp.write(Fernet.generate_key())
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            try:
+                os.link(tmp.name, target)
+            except FileExistsError:
+                pass
+    cipher()
 
 
 def callback_url():
@@ -42,7 +78,7 @@ def ready():
     try:
         cipher()
         callback_url()
-    except (ValueError, UnicodeError):
+    except (ValueError, UnicodeError, OSError):
         return False
     return True
 
@@ -66,7 +102,8 @@ def _admin(request):
 def gmail_settings(request):
     _admin(request)
     return render(request, 'management/gmail_oauth.html', {
-        'configured': ready(), 'authorization': GmailAuthorization.objects.filter(pk=1).first(),
+        'configured': ready(),
+        'can_initialize': bool(settings.GMAIL_WEB_CLIENT_ID and settings.GMAIL_WEB_CLIENT_SECRET and settings.GMAIL_WEB_ACCOUNT and os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')), 'authorization': GmailAuthorization.objects.filter(pk=1).first(),
         'gmail_account': settings.GMAIL_WEB_ACCOUNT,
     })
 
@@ -75,6 +112,15 @@ def gmail_settings(request):
 @require_POST
 def gmail_start(request):
     _admin(request)
+    if all((settings.GMAIL_WEB_CLIENT_ID, settings.GMAIL_WEB_CLIENT_SECRET, settings.GMAIL_WEB_ACCOUNT)):
+        try:
+            callback_url()
+            # A missing file with an existing token may indicate a lost mount.
+            if not GmailAuthorization.objects.filter(pk=1).exists():
+                provision_key()
+        except (OSError, ValueError):
+            messages.error(request, 'No se pudo preparar el cifrado. Revisa el volumen persistente y sus permisos.')
+            return redirect('management:gmail_settings')
     if not ready():
         messages.error(request, 'Completa primero la configuración privada en Railway.')
         return redirect('management:gmail_settings')

@@ -54,3 +54,21 @@ class GmailOAuthTest(TestCase):
         user = get_user_model().objects.create_user('staff', is_staff=True)
         self.client.force_login(user)
         self.assertEqual(self.client.post(reverse('management:gmail_start')).status_code, 403)
+
+
+class PersistentGmailKeyTest(TestCase):
+    @override_settings(GMAIL_TOKEN_ENCRYPTION_KEY='')
+    def test_provisions_once_and_reads_existing_key(self):
+        import os
+        import tempfile
+        from pathlib import Path
+        from .gmail_oauth import cipher, key_path, provision_key
+        with tempfile.TemporaryDirectory() as mount, patch.dict(os.environ, {'RAILWAY_VOLUME_MOUNT_PATH': mount}), override_settings(MEDIA_ROOT=Path(mount)/'media'):
+            provision_key()
+            token = cipher().encrypt(b'verification')
+            key = key_path()
+            original = key.read_bytes()
+            provision_key()
+            self.assertEqual(key.read_bytes(), original)
+            self.assertEqual(cipher().decrypt(token), b'verification')
+            self.assertEqual(key.stat().st_mode & 0o777, 0o600)
