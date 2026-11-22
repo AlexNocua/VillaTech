@@ -73,7 +73,7 @@ def callback_url():
 
 def ready():
     if not all((settings.GMAIL_WEB_CLIENT_ID, settings.GMAIL_WEB_CLIENT_SECRET,
-                settings.GMAIL_TOKEN_ENCRYPTION_KEY, settings.GMAIL_WEB_ACCOUNT)):
+                settings.GMAIL_WEB_ACCOUNT)):
         return False
     try:
         cipher()

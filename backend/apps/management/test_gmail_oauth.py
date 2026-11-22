@@ -70,5 +70,8 @@ class PersistentGmailKeyTest(TestCase):
             original = key.read_bytes()
             provision_key()
             self.assertEqual(key.read_bytes(), original)
+            from .gmail_oauth import ready
+            with override_settings(GMAIL_WEB_CLIENT_ID='web', GMAIL_WEB_CLIENT_SECRET='secret', GMAIL_WEB_ACCOUNT='studio@example.com', PUBLIC_SITE_URL='https://www.villatechubate.com'):
+                self.assertTrue(ready())
             self.assertEqual(cipher().decrypt(token), b'verification')
             self.assertEqual(key.stat().st_mode & 0o777, 0o600)
