@@ -1,0 +1,45 @@
+name: CI VillaTech
+on:
+  pull_request:
+  push:
+    branches: [main, master, staging]
+permissions:
+  contents: read
+jobs:
+  django:
+    name: Django
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DB_ENGINE: sqlite
+      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-production.lock.txt
+      - run: python manage.py check
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test apps.management apps.landing --noinput
+  expo:
+    name: Expo iOS
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: VillaTech_iPhone
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: VillaTech_iPhone/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npx expo install --check
+      - run: npx expo export --platform ios --output-dir /tmp/villatech-ci-ios

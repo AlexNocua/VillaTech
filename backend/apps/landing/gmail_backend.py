@@ -16,7 +16,11 @@ class GmailAPIEmailBackend(BaseEmailBackend):
         self.access_token=None
     def open(self):
         if self.access_token:return False
-        required=[settings.GMAIL_CLIENT_ID,settings.GMAIL_CLIENT_SECRET,settings.GMAIL_REFRESH_TOKEN]
+        from apps.management.gmail_oauth import credentials
+        try:
+            required=credentials()
+        except Exception:
+            raise GmailAPIError('No se pudo leer la autorización guardada de Gmail. Revisa la clave de cifrado y la configuración.') from None
         if not all(required):raise GmailAPIError('Faltan las credenciales OAuth de Gmail en el servidor.')
         data=urlencode({'client_id':required[0],'client_secret':required[1],'refresh_token':required[2],'grant_type':'refresh_token'}).encode()
         request=Request('https://oauth2.googleapis.com/token',data=data,headers={'Content-Type':'application/x-www-form-urlencoded'},method='POST')

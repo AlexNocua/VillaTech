@@ -252,3 +252,10 @@ class ProductReview(models.Model):
     def final_label(self):return 'Software entregado' if self.review_type=='software' else 'Producto final'
     @property
     def reference_label(self):return 'Referencia / propuesta' if self.review_type=='software' else 'La idea'
+
+
+class GmailAuthorization(models.Model):
+    """Server-side credential; only the OAuth flow can replace it."""
+    encrypted_token = models.TextField(editable=False)
+    client_id = models.CharField(max_length=255, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)

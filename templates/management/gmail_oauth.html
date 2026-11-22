@@ -1,0 +1,18 @@
+{% extends 'management/base.html' %}
+{% block content %}
+<p class="eyebrow">CENTRO DE CORREOS</p>
+<h1>Autorización de Gmail</h1>
+<section class="panel">
+{% if configured %}
+  <p>Cuenta autorizada para este servicio: <strong>{{ gmail_account }}</strong>.</p>
+  {% if authorization %}<p>Última autorización guardada: {{ authorization.updated_at|date:"d/m/Y H:i" }}. La fecha no confirma que Google siga aceptando el permiso.</p>{% endif %}
+  <p>Cuando cambies o revoques el permiso, repite este proceso. Google abrirá su pantalla de autorización.</p>
+  <form method="post" action="{% url 'management:gmail_start' %}">
+    {% csrf_token %}<button type="submit" class="primary">Autorizar o renovar con Google</button>
+  </form>
+{% else %}
+  <p>La renovación desde Gestión necesita la configuración inicial en Railway. Consulta la guía de Gmail incluida con el proyecto.</p>
+{% endif %}
+</section>
+<a href="{% url 'management:email_list' %}">← Volver a Correos</a>
+{% endblock %}

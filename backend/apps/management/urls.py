@@ -1,8 +1,12 @@
+from . import gmail_oauth
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
 from . import views, commerce, model_library, calendar_views, reviews
 app_name='management'
 urlpatterns=[
+ path('avisos/gmail/',gmail_oauth.gmail_settings,name='gmail_settings'),
+ path('avisos/gmail/autorizar/',gmail_oauth.gmail_start,name='gmail_start'),
+ path('avisos/gmail/callback/',gmail_oauth.gmail_callback,name='gmail_callback'),
  path('desarrollo/<int:pk>/opinion/',reviews.prepare_software_review,name='prepare_software_review'),
  path('opiniones/',reviews.review_list,name='reviews'),
  path('opiniones/<int:pk>/',reviews.review_edit,name='review_edit'),

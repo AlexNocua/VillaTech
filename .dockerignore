@@ -13,3 +13,9 @@ backups
 **/*.zip
 
 env
+
+VillaTech_iPhone
+**/*.env
+**/client_secret*.json
+**/token.json
+**/credentials.json

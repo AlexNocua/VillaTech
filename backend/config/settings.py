@@ -275,3 +275,9 @@ EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', {
 GMAIL_CLIENT_ID = os.environ.get('GMAIL_CLIENT_ID', '')
 GMAIL_CLIENT_SECRET = os.environ.get('GMAIL_CLIENT_SECRET', '')
 GMAIL_REFRESH_TOKEN = os.environ.get('GMAIL_REFRESH_TOKEN', '')
+
+# Optional Gmail web authorization. Keep these values in Railway.
+GMAIL_WEB_CLIENT_ID = os.environ.get('GMAIL_WEB_CLIENT_ID', '')
+GMAIL_WEB_CLIENT_SECRET = os.environ.get('GMAIL_WEB_CLIENT_SECRET', '')
+GMAIL_TOKEN_ENCRYPTION_KEY = os.environ.get('GMAIL_TOKEN_ENCRYPTION_KEY', '')
+GMAIL_WEB_ACCOUNT = os.environ.get('GMAIL_WEB_ACCOUNT', '').strip().lower()
