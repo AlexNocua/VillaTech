@@ -1,3 +1,4 @@
+from apps.landing.photo_uploads import PhotoField
 import uuid
 from django.db import models
 from django.conf import settings
@@ -24,8 +25,8 @@ class Entry(models.Model):
     filament_g = models.DecimalField('Filamento consumido (g)', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     acquired_filament_g = models.DecimalField('Filamento adquirido (g)', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     updated_at = models.DateTimeField(auto_now=True)
-    image = models.ImageField('Imagen de referencia', upload_to=private_path, blank=True, validators=[validate_image])
-    final_image = models.ImageField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
+    image = PhotoField('Imagen de referencia', upload_to=private_path, blank=True, validators=[validate_image])
+    final_image = PhotoField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
     quotation_pdf = models.FileField(upload_to=private_path, blank=True, editable=False)
     logo_theme = models.CharField('Logo del PDF', max_length=5, choices=[('light','Blanco'),('dark','Negro')], default='light')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -112,12 +113,12 @@ class QuoteItem(models.Model):
     height_cm = models.DecimalField('Alto cm',max_digits=7,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     quantity = models.PositiveIntegerField('Cantidad',default=1,validators=[MinValueValidator(1)])
     unit_price = models.DecimalField('Precio unitario COP',max_digits=12,decimal_places=2,default=0,validators=[MinValueValidator(0)])
-    image = models.ImageField('Imagen del producto',upload_to=private_path,blank=True,validators=[validate_image])
-    final_image = models.ImageField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
+    image = PhotoField('Imagen del producto',upload_to=private_path,blank=True,validators=[validate_image])
+    final_image = PhotoField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
     description = models.TextField('Descripción y acabado', blank=True)
     unit_filament_g = models.DecimalField('Filamento por unidad g',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     unit_print_hours = models.DecimalField('Horas por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
-    comparison_image = models.ImageField('Imagen de comparación / escala',upload_to=private_path,blank=True,validators=[validate_image])
+    comparison_image = PhotoField('Imagen de comparación / escala',upload_to=private_path,blank=True,validators=[validate_image])
     @property
     def filament_total(self):return self.quantity*self.unit_filament_g
     @property
@@ -143,7 +144,7 @@ class DevelopmentProject(models.Model):
 
 class ProjectScreenshot(models.Model):
     project=models.ForeignKey(DevelopmentProject,on_delete=models.CASCADE,related_name='screenshots')
-    image=models.ImageField('Captura del aplicativo',upload_to=private_path,validators=[validate_image])
+    image=PhotoField('Captura del aplicativo',upload_to=private_path,validators=[validate_image])
     created_at=models.DateTimeField(auto_now_add=True)
 
 class Payment(models.Model):
@@ -220,8 +221,8 @@ class ProductReview(models.Model):
     product=models.ForeignKey('landing.Product',on_delete=models.SET_NULL,null=True,blank=True)
     product_title=models.CharField('Título del producto',max_length=160)
     quantity=models.PositiveIntegerField(default=1)
-    reference_image=models.ImageField('Imagen de referencia',upload_to=private_path,blank=True,validators=[validate_image])
-    final_image=models.ImageField('Imagen del producto final',upload_to=private_path,blank=True,validators=[validate_image])
+    reference_image=PhotoField('Imagen de referencia',upload_to=private_path,blank=True,validators=[validate_image])
+    final_image=PhotoField('Imagen del producto final',upload_to=private_path,blank=True,validators=[validate_image])
     full_name=models.CharField('Nombre completo',max_length=255,blank=True)
     rating=models.PositiveSmallIntegerField('Calificación',null=True,blank=True,validators=[MinValueValidator(1),MaxValueValidator(5)])
     comment=models.TextField('Opinión (opcional)',blank=True,max_length=2000)

@@ -1,3 +1,4 @@
+from .photo_uploads import PhotoField
 from django.db import models
 from django.core.validators import MinValueValidator
 from .validators import image_path, validate_image, private_path, validate_print_model
@@ -39,7 +40,7 @@ class Product(models.Model):
     unit_filament_g = models.DecimalField('Filamento por unidad (g)',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     unit_print_hours = models.DecimalField('Horas de impresión por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
     stock = models.PositiveBigIntegerField(default=0)
-    image = models.ImageField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
+    image = PhotoField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
     print_model = models.FileField('Modelo de impresión', upload_to=private_path, blank=True, validators=[validate_print_model])
     print_model_original_name = models.CharField(max_length=255, blank=True)
     image_url = models.URLField(max_length=500, blank=True)
@@ -88,7 +89,7 @@ class ProductVariant(models.Model):
     width_cm = models.DecimalField('Ancho (cm)', max_digits=7, decimal_places=2, validators=[MinValueValidator(0.01)])
     height_cm = models.DecimalField('Alto (cm)', max_digits=7, decimal_places=2, validators=[MinValueValidator(0.01)])
     estimated_price = models.DecimalField('Precio estimado COP', max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
-    image = models.ImageField('Imagen', upload_to=image_path, validators=[validate_image], blank=True)
+    image = PhotoField('Imagen', upload_to=image_path, validators=[validate_image], blank=True)
     is_active = models.BooleanField(default=True)
     class Meta:
         ordering = ['estimated_price', 'pk']

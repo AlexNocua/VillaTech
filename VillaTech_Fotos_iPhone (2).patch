@@ -1,0 +1,435 @@
+diff --git a/backend/apps/landing/contact_forms.py b/backend/apps/landing/contact_forms.py
+index cad0dca..2ca9c5e 100644
+--- a/backend/apps/landing/contact_forms.py
++++ b/backend/apps/landing/contact_forms.py
+@@ -2,6 +2,7 @@ from django import forms
+ from django.core.exceptions import ValidationError
+ from pathlib import Path
+ from .models import Product
++from .photo_uploads import PHOTO_EXTENSIONS, prepare_photo
+ 
+ class ContactForm(forms.Form):
+     name=forms.CharField(max_length=255,error_messages={'required':'Escribe tu nombre.','max_length':'El nombre debe tener máximo 255 caracteres.'})
+@@ -27,10 +28,12 @@ class ContactForm(forms.Form):
+ 
+ def validate_reference(file):
+     if file.size>100*1024*1024: raise ValidationError('Cada archivo debe pesar máximo 100 MB.')
+-    if Path(file.name).suffix.lower() not in {'.stl','.obj','.3mf','.step','.stp','.pdf','.png','.jpg','.jpeg','.webp','.mp4','.webm','.mov'}:
++    if Path(file.name).suffix.lower() not in PHOTO_EXTENSIONS | {'.stl','.obj','.3mf','.step','.stp','.pdf','.mp4','.webm','.mov'}:
+         raise ValidationError('Formato de archivo no permitido.')
+ 
+     extension = Path(file.name).suffix.lower()
++    if extension in PHOTO_EXTENSIONS:
++        return prepare_photo(file)
+     if extension in {'.mp4','.mov','.webm'}:
+         try:
+             header = file.read(32)
+@@ -39,3 +42,5 @@ def validate_reference(file):
+                 raise ValidationError('Carga un video MP4, MOV o WEBM válido.')
+         finally:
+             file.seek(0)
++
++    return file
+diff --git a/backend/apps/landing/models.py b/backend/apps/landing/models.py
+index 354241d..3f4710c 100644
+--- a/backend/apps/landing/models.py
++++ b/backend/apps/landing/models.py
+@@ -1,3 +1,4 @@
++from .photo_uploads import PhotoField
+ from django.db import models
+ from django.core.validators import MinValueValidator
+ from .validators import image_path, validate_image, private_path, validate_print_model
+@@ -39,7 +40,7 @@ class Product(models.Model):
+     unit_filament_g = models.DecimalField('Filamento por unidad (g)',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+     unit_print_hours = models.DecimalField('Horas de impresión por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+     stock = models.PositiveBigIntegerField(default=0)
+-    image = models.ImageField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
++    image = PhotoField('Imagen del producto', upload_to=image_path, validators=[validate_image], blank=True)
+     print_model = models.FileField('Modelo de impresión', upload_to=private_path, blank=True, validators=[validate_print_model])
+     print_model_original_name = models.CharField(max_length=255, blank=True)
+     image_url = models.URLField(max_length=500, blank=True)
+@@ -88,7 +89,7 @@ class ProductVariant(models.Model):
+     width_cm = models.DecimalField('Ancho (cm)', max_digits=7, decimal_places=2, validators=[MinValueValidator(0.01)])
+     height_cm = models.DecimalField('Alto (cm)', max_digits=7, decimal_places=2, validators=[MinValueValidator(0.01)])
+     estimated_price = models.DecimalField('Precio estimado COP', max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+-    image = models.ImageField('Imagen', upload_to=image_path, validators=[validate_image], blank=True)
++    image = PhotoField('Imagen', upload_to=image_path, validators=[validate_image], blank=True)
+     is_active = models.BooleanField(default=True)
+     class Meta:
+         ordering = ['estimated_price', 'pk']
+diff --git a/backend/apps/landing/photo_uploads.py b/backend/apps/landing/photo_uploads.py
+new file mode 100644
+index 0000000..441f400
+--- /dev/null
++++ b/backend/apps/landing/photo_uploads.py
+@@ -0,0 +1,79 @@
++"""Decode raster uploads and store a browser-compatible image."""
++from io import BytesIO
++from pathlib import Path
++
++from django import forms
++from django.core.exceptions import ValidationError
++from django.core.files.uploadedfile import SimpleUploadedFile
++from django.db import models
++from PIL import Image, ImageOps
++from pillow_heif import register_heif_opener
++
++register_heif_opener(decode_threads=1, thumbnails=False, depth_images=False, aux_images=False)
++
++PHOTO_EXTENSIONS = frozenset({
++    '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.avif',
++    '.gif', '.bmp', '.tif', '.tiff',
++})
++PHOTO_ACCEPT = 'image/*,' + ','.join(sorted(PHOTO_EXTENSIONS))
++PHOTO_FORMATS = ('JPEG', 'PNG', 'WEBP', 'HEIF', 'AVIF', 'GIF', 'BMP', 'TIFF')
++MAX_PHOTO_BYTES = 25 * 1024 * 1024
++MAX_PHOTO_PIXELS = 55_000_000
++MAX_STORED_BYTES = 5 * 1024 * 1024
++
++
++def prepare_photo(upload):
++    if upload.size > MAX_PHOTO_BYTES:
++        raise ValidationError('La foto original no puede superar 25 MB.')
++    try:
++        upload.seek(0)
++        with Image.open(upload, formats=PHOTO_FORMATS) as source:
++            if source.width * source.height > MAX_PHOTO_PIXELS:
++                raise ValidationError('La foto no puede superar 55 megapíxeles.')
++            original_formats = {'.jpg': 'JPEG', '.jpeg': 'JPEG', '.png': 'PNG', '.webp': 'WEBP'}
++            if (upload.size <= MAX_STORED_BYTES and source.width * source.height <= 20_000_000
++                    and original_formats.get(Path(upload.name).suffix.lower()) == source.format):
++                source.verify()
++                return upload
++            source.load()
++            alpha = source.has_transparency_data
++            oriented = ImageOps.exif_transpose(source)
++            oriented.thumbnail((3000, 3000))
++            pixels = oriented.convert('RGBA' if alpha else 'RGB')
++            pixels.info.clear()
++            suffix, mime, fmt = ('webp', 'image/webp', 'WEBP') if alpha else ('jpg', 'image/jpeg', 'JPEG')
++            for edge in (3000, 2200, 1600):
++                pixels.thumbnail((edge, edge))
++                output = BytesIO()
++                pixels.save(output, fmt, quality=86)
++                if output.tell() <= MAX_STORED_BYTES:
++                    return SimpleUploadedFile(
++                        f'{Path(upload.name).stem[:120]}.{suffix}', output.getvalue(), mime,
++                    )
++            raise ValidationError('No pudimos reducir el tamaño de la foto. Intenta con una resolución menor.')
++    except (OSError, ValueError, SyntaxError, RuntimeError, EOFError, Image.DecompressionBombError) as exc:
++        raise ValidationError(
++            'La foto no es válida o no se pudo abrir. Usa HEIC/HEIF, JPG, PNG, WEBP, AVIF, GIF, BMP o TIFF.'
++        ) from exc
++    finally:
++        upload.seek(0)
++
++
++class PhotoFormField(forms.ImageField):
++    def to_python(self, data):
++        if not data:
++            return super().to_python(data)
++        return super().to_python(prepare_photo(data))
++
++    def widget_attrs(self, widget):
++        return {**super().widget_attrs(widget), 'accept': PHOTO_ACCEPT}
++
++
++class PhotoField(models.ImageField):
++    def formfield(self, **kwargs):
++        return super().formfield(form_class=PhotoFormField, **kwargs)
++
++    def deconstruct(self):
++        # Same storage and schema as Django ImageField; only the upload form changes.
++        name, _, args, kwargs = super().deconstruct()
++        return name, 'django.db.models.ImageField', args, kwargs
+diff --git a/backend/apps/landing/test_photo_uploads.py b/backend/apps/landing/test_photo_uploads.py
+new file mode 100644
+index 0000000..de14ca3
+--- /dev/null
++++ b/backend/apps/landing/test_photo_uploads.py
+@@ -0,0 +1,53 @@
++from io import BytesIO
++
++from django.core.exceptions import ValidationError
++from django.core.files.uploadedfile import SimpleUploadedFile
++from django.test import SimpleTestCase
++from PIL import Image
++from pillow_heif import from_pillow
++
++from apps.management.forms import WorkflowForm
++from .contact_forms import validate_reference
++
++
++class PhotoUploadTests(SimpleTestCase):
++    def make_photo(self, extension, encoding, mode='RGB'):
++        buffer = BytesIO()
++        source = Image.new(mode, (48, 32))
++        if encoding == 'HEIF':
++            from_pillow(source).save(buffer)
++        else:
++            source.save(buffer, encoding)
++        return SimpleUploadedFile(f'IMG_1234.{extension}', buffer.getvalue())
++
++    def test_managed_photo_accepts_heic_and_stores_jpeg(self):
++        upload = self.make_photo('HEIC', 'HEIF')
++        field = WorkflowForm().fields['image']
++        self.assertIn('.heic', field.widget.attrs['accept'])
++        photo = field.clean(upload)
++        self.assertEqual(photo.name, 'IMG_1234.jpg')
++        self.assertEqual(Image.open(photo).format, 'JPEG')
++
++    def test_public_contact_converts_supported_formats(self):
++        for extension, encoding in (
++            ('heif', 'HEIF'), ('jpg', 'JPEG'), ('jpeg', 'JPEG'), ('png', 'PNG'), ('webp', 'WEBP'),
++            ('avif', 'AVIF'), ('gif', 'GIF'), ('bmp', 'BMP'), ('tif', 'TIFF'), ('tiff', 'TIFF'),
++        ):
++            with self.subTest(extension=extension):
++                photo = validate_reference(self.make_photo(extension, encoding))
++                with Image.open(photo) as decoded:
++                    self.assertEqual(decoded.format, {'png': 'PNG', 'webp': 'WEBP'}.get(extension, 'JPEG'))
++
++    def test_alpha_and_invalid_upload(self):
++        photo = validate_reference(self.make_photo('tiff', 'TIFF', 'RGBA'))
++        self.assertEqual(photo.content_type, 'image/webp')
++        self.assertEqual(Image.open(photo).mode, 'RGBA')
++        invalid = SimpleUploadedFile('fake.heic', b'Not an image')
++        with self.assertRaises(ValidationError):
++            WorkflowForm().fields['image'].clean(invalid)
++
++    def test_large_original_has_a_specific_error(self):
++        upload = self.make_photo('jpg', 'JPEG')
++        upload.size = 26 * 1024 * 1024
++        with self.assertRaisesMessage(ValidationError, '25 MB'):
++            validate_reference(upload)
+diff --git a/backend/apps/landing/views.py b/backend/apps/landing/views.py
+index 122d2a7..eba5d25 100644
+--- a/backend/apps/landing/views.py
++++ b/backend/apps/landing/views.py
+@@ -67,8 +67,9 @@ def contact_form_action(request):
+     file_errors=[]
+     if len(files)>5: file_errors.append('Selecciona como máximo 5 archivos.')
+     if sum(f.size for f in files)>200*1024*1024: file_errors.append('Los archivos no pueden superar 200 MB en total.')
+-    for file in files:
+-        try: validate_reference(file)
++    prepared=[]
++    for file in files if not file_errors else ():
++        try: prepared.append((Path(file.name).name[:255], validate_reference(file)))
+         except ValidationError as error: file_errors.extend(f'{file.name}: {message}' for message in error.messages)
+     if file_errors: errors['reference_files']=file_errors
+     if not valid or errors:
+@@ -82,7 +83,7 @@ def contact_form_action(request):
+         data=form.cleaned_data
+         with transaction.atomic():
+             contact=Contact.objects.create(client_name=data['name'],telephone=data['phone'].strip(),email=data['email'],service=data['service'],message=data['message'],file='')
+-            for file in files: ContactAttachment.objects.create(contact=contact,file=file,original_name=Path(file.name).name[:255])
++            for name, file in prepared: ContactAttachment.objects.create(contact=contact,file=file,original_name=name)
+             from apps.management.models import Entry
+             from .notifications import queue_contact_emails, safely_dispatch
+             selected=data.get('reference_product')
+diff --git a/backend/apps/management/models.py b/backend/apps/management/models.py
+index 4ec013b..edbc082 100644
+--- a/backend/apps/management/models.py
++++ b/backend/apps/management/models.py
+@@ -1,3 +1,4 @@
++from apps.landing.photo_uploads import PhotoField
+ import uuid
+ from django.db import models
+ from django.conf import settings
+@@ -24,8 +25,8 @@ class Entry(models.Model):
+     filament_g = models.DecimalField('Filamento consumido (g)', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+     acquired_filament_g = models.DecimalField('Filamento adquirido (g)', max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+     updated_at = models.DateTimeField(auto_now=True)
+-    image = models.ImageField('Imagen de referencia', upload_to=private_path, blank=True, validators=[validate_image])
+-    final_image = models.ImageField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
++    image = PhotoField('Imagen de referencia', upload_to=private_path, blank=True, validators=[validate_image])
++    final_image = PhotoField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
+     quotation_pdf = models.FileField(upload_to=private_path, blank=True, editable=False)
+     logo_theme = models.CharField('Logo del PDF', max_length=5, choices=[('light','Blanco'),('dark','Negro')], default='light')
+     created_at = models.DateTimeField(auto_now_add=True)
+@@ -112,12 +113,12 @@ class QuoteItem(models.Model):
+     height_cm = models.DecimalField('Alto cm',max_digits=7,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+     quantity = models.PositiveIntegerField('Cantidad',default=1,validators=[MinValueValidator(1)])
+     unit_price = models.DecimalField('Precio unitario COP',max_digits=12,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+-    image = models.ImageField('Imagen del producto',upload_to=private_path,blank=True,validators=[validate_image])
+-    final_image = models.ImageField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
++    image = PhotoField('Imagen del producto',upload_to=private_path,blank=True,validators=[validate_image])
++    final_image = PhotoField('Producto final entregado',upload_to=private_path,blank=True,validators=[validate_image])
+     description = models.TextField('Descripción y acabado', blank=True)
+     unit_filament_g = models.DecimalField('Filamento por unidad g',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+     unit_print_hours = models.DecimalField('Horas por unidad',max_digits=10,decimal_places=2,default=0,validators=[MinValueValidator(0)])
+-    comparison_image = models.ImageField('Imagen de comparación / escala',upload_to=private_path,blank=True,validators=[validate_image])
++    comparison_image = PhotoField('Imagen de comparación / escala',upload_to=private_path,blank=True,validators=[validate_image])
+     @property
+     def filament_total(self):return self.quantity*self.unit_filament_g
+     @property
+@@ -143,7 +144,7 @@ class DevelopmentProject(models.Model):
+ 
+ class ProjectScreenshot(models.Model):
+     project=models.ForeignKey(DevelopmentProject,on_delete=models.CASCADE,related_name='screenshots')
+-    image=models.ImageField('Captura del aplicativo',upload_to=private_path,validators=[validate_image])
++    image=PhotoField('Captura del aplicativo',upload_to=private_path,validators=[validate_image])
+     created_at=models.DateTimeField(auto_now_add=True)
+ 
+ class Payment(models.Model):
+@@ -220,8 +221,8 @@ class ProductReview(models.Model):
+     product=models.ForeignKey('landing.Product',on_delete=models.SET_NULL,null=True,blank=True)
+     product_title=models.CharField('Título del producto',max_length=160)
+     quantity=models.PositiveIntegerField(default=1)
+-    reference_image=models.ImageField('Imagen de referencia',upload_to=private_path,blank=True,validators=[validate_image])
+-    final_image=models.ImageField('Imagen del producto final',upload_to=private_path,blank=True,validators=[validate_image])
++    reference_image=PhotoField('Imagen de referencia',upload_to=private_path,blank=True,validators=[validate_image])
++    final_image=PhotoField('Imagen del producto final',upload_to=private_path,blank=True,validators=[validate_image])
+     full_name=models.CharField('Nombre completo',max_length=255,blank=True)
+     rating=models.PositiveSmallIntegerField('Calificación',null=True,blank=True,validators=[MinValueValidator(1),MaxValueValidator(5)])
+     comment=models.TextField('Opinión (opcional)',blank=True,max_length=2000)
+diff --git a/backend/apps/management/views.py b/backend/apps/management/views.py
+index 31f6d21..796aa57 100644
+--- a/backend/apps/management/views.py
++++ b/backend/apps/management/views.py
+@@ -369,17 +369,18 @@ def development(request,pk=None):
+         valid=form.is_valid();uploads=request.FILES.getlist('screenshots')
+         if len(uploads)>6:
+             form.add_error(None,'Puedes agregar hasta 6 imágenes por envío.');valid=False
+-        from apps.landing.validators import validate_image
++        from apps.landing.photo_uploads import prepare_photo
+         from django.core.exceptions import ValidationError
+-        for uploaded in uploads:
+-            try:validate_image(uploaded);uploaded.seek(0)
++        photos=[]
++        for uploaded in uploads if valid else ():
++            try:photos.append(prepare_photo(uploaded))
+             except ValidationError as error:form.add_error(None,error);valid=False
+         if valid:
+             with transaction.atomic():
+                 project=form.save(commit=False)
+                 if not pk:project.created_by=request.user
+                 project.save()
+-                for uploaded in uploads:ProjectScreenshot.objects.create(project=project,image=uploaded)
++                for uploaded in photos:ProjectScreenshot.objects.create(project=project,image=uploaded)
+             messages.success(request,'Proyecto y capturas guardados.')
+             return redirect('management:development')
+     projects=DevelopmentProject.objects.prefetch_related('screenshots','reviews').all()
+@@ -442,7 +443,11 @@ def contact_attachment(request,pk):
+     from apps.landing.models import ContactAttachment
+     attachment = get_object_or_404(ContactAttachment,pk=pk)
+     from .reference_media import reference_response
+-    return reference_response(request,attachment.file,attachment.display_name)
++    name=attachment.display_name
++    stored_suffix=Path(attachment.file.name).suffix
++    if attachment.media_kind=='image' and Path(name).suffix.lower()!=stored_suffix.lower():
++        name=Path(name).stem+stored_suffix
++    return reference_response(request,attachment.file,name)
+ 
+ 
+ @staff_only
+diff --git a/backend/requirements-production.lock.txt b/backend/requirements-production.lock.txt
+index 9e433af..2f6f335 100644
+--- a/backend/requirements-production.lock.txt
++++ b/backend/requirements-production.lock.txt
+@@ -17,3 +17,5 @@ whitenoise==6.12.0
+ cryptography==49.0.0
+ cffi==2.1.1
+ pycparser==3.12
++
++pillow-heif==1.1.1
+diff --git a/backend/requirements.txt b/backend/requirements.txt
+index 088b2f5..0186ab7 100644
+--- a/backend/requirements.txt
++++ b/backend/requirements.txt
+@@ -6,3 +6,5 @@ redis>=6,<7
+ reportlab>=4.4,<5
+ 
+ cryptography>=49,<50
++
++pillow-heif==1.1.1
+diff --git a/static/landing/js/contact-validation.js b/static/landing/js/contact-validation.js
+index ed525df..f8ddbf1 100644
+--- a/static/landing/js/contact-validation.js
++++ b/static/landing/js/contact-validation.js
+@@ -30,8 +30,9 @@
+         const files = Array.from(field.files);
+         if (files.length > 5) message = 'Selecciona como máximo 5 archivos.';
+         else if (files.reduce((sum,file)=>sum+file.size,0)>200*1024*1024) message = 'Los archivos no pueden superar 200 MB en total.';
++        else if (files.some(file=>/\.(png|jpe?g|webp|heic|heif|avif|gif|bmp|tiff?)$/i.test(file.name) && file.size>25*1024*1024)) message = 'Cada foto debe pesar máximo 25 MB.';
+         else if (files.some(file=>file.size>100*1024*1024)) message = 'Cada archivo debe pesar máximo 100 MB.';
+-        else if (files.some(file=>!(/\.(stl|obj|3mf|step|stp|pdf|png|jpe?g|webp|mp4|webm|mov)$/i.test(file.name)))) message = 'Formato no permitido. Usa STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG, WEBP, MP4, WEBM o MOV.';
++        else if (files.some(file=>!(/\.(stl|obj|3mf|step|stp|pdf|png|jpe?g|webp|heic|heif|avif|gif|bmp|tiff?|mp4|webm|mov)$/i.test(file.name)))) message = 'Formato no permitido. Usa STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG, WEBP, HEIC/HEIF, AVIF, GIF, BMP, TIFF, MP4, WEBM o MOV.';
+       } else if (name === 'privacy_consent') {
+         if (!field.checked) message = 'Acepta el aviso de privacidad para enviar la solicitud.';
+       } else if (!value) {
+diff --git a/static/landing/js/file-uploader.js b/static/landing/js/file-uploader.js
+index e8ac630..5a05f76 100644
+--- a/static/landing/js/file-uploader.js
++++ b/static/landing/js/file-uploader.js
+@@ -14,7 +14,7 @@
+         "png",
+         "jpg",
+         "jpeg",
+-        "webp", "mp4", "webm", "mov"
++        "webp", "heic", "heif", "avif", "gif", "bmp", "tif", "tiff", "mp4", "webm", "mov"
+     ]);
+ 
+     var maximumFiles = 5;
+diff --git a/templates/landing/components/contact.html b/templates/landing/components/contact.html
+index b178943..14ae3fe 100644
+--- a/templates/landing/components/contact.html
++++ b/templates/landing/components/contact.html
+@@ -93,7 +93,7 @@
+               <span>Opcional</span>
+             </div>
+ 
+-            <input class="upload-field__input sr-only" id="contact-files" name="reference_files" type="file" accept=".stl,.obj,.3mf,.step,.stp,.pdf,.png,.jpg,.jpeg,.webp,.mp4,.webm,.mov" aria-describedby="contact-files-help" data-file-input multiple />
++            <input class="upload-field__input sr-only" id="contact-files" name="reference_files" type="file" accept=".stl,.obj,.3mf,.step,.stp,.pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.avif,.gif,.bmp,.tif,.tiff,.mp4,.webm,.mov" aria-describedby="contact-files-help" data-file-input multiple />
+ 
+             <label class="upload-field__dropzone" for="contact-files" data-file-dropzone>
+               <span class="upload-field__icon" aria-hidden="true">
+@@ -125,7 +125,7 @@
+             <p class="contact-field-error" id="contact-files-error" data-contact-error="reference_files" role="alert"></p>
+             <p class="upload-field__error" data-file-error role="alert" hidden></p>
+ 
+-            <p class="upload-field__help" id="contact-files-help">Hasta 5 archivos. Máximo 100 MB por archivo y 200 MB en total. Formatos: STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG, WEBP, MP4, WEBM y MOV.</p>
++            <p class="upload-field__help" id="contact-files-help">Hasta 5 archivos. Máximo 25 MB por foto, 100 MB por otro archivo y 200 MB en total. Formatos: STL, OBJ, 3MF, STEP, STP, PDF, PNG, JPG, WEBP, HEIC/HEIF, AVIF, GIF, BMP, TIFF, MP4, WEBM y MOV.</p>
+           </div>
+         </div>
+ 
+@@ -140,4 +140,4 @@
+   </div>
+ </section>
+ 
+-<script src="{% static 'landing/js/contact-validation.js' %}?v=15" defer></script>
++<script src="{% static 'landing/js/contact-validation.js' %}?v=16" defer></script>
+diff --git a/templates/landing/pages/landing.html b/templates/landing/pages/landing.html
+index 0b655ce..6061688 100644
+--- a/templates/landing/pages/landing.html
++++ b/templates/landing/pages/landing.html
+@@ -41,5 +41,5 @@
+ {% block extra_js %}
+   {% if customer_reviews %}<script src="{% static 'landing/js/review-list.js' %}?v=19" defer></script><script type="module" src="{% static 'landing/js/reviews.js' %}?v=19"></script>{% endif %}
+   <script src="{% static 'landing/js/catalog.js' %}?v=21" defer></script>
+-  <script src="{% static 'landing/js/file-uploader.js' %}?v=11" defer></script>
++  <script src="{% static 'landing/js/file-uploader.js' %}?v=12" defer></script>
+ {% endblock %}
+diff --git a/templates/management/development.html b/templates/management/development.html
+index be0c97f..39a3f54 100644
+--- a/templates/management/development.html
++++ b/templates/management/development.html
+@@ -1,5 +1,5 @@
+ {% extends 'management/base.html' %}{% block content %}
+ <p class="eyebrow">ESTUDIO DIGITAL</p><h1>Diseño y desarrollo.</h1><p class="muted">Tu biblioteca privada de aplicativos: alcance, cliente, avance y capturas.</p>
+ <section class="project-grid">{% for project in projects %}<article class="panel project-card"><div class="project-heading"><span class="badge">{{ project.get_project_type_display }}</span><span class="badge">{{ project.get_status_display }}</span></div><h2>{{ project.name }}</h2><p class="muted">{{ project.customer|default:'Proyecto propio' }}{% if project.started_on %} · {{ project.started_on|date:'d/m/Y' }}{% endif %}</p><div class="project-description">{{ project.description|linebreaksbr }}</div><div class="project-gallery">{% for shot in project.screenshots.all %}<a href="{% url 'management:screenshot' shot.pk %}" target="_blank" rel="noopener"><img src="{% url 'management:screenshot' shot.pk %}" alt="Captura de {{ project.name }}" loading="lazy" width="400" height="240"></a>{% empty %}<p class="muted">Todavía no hay capturas.</p>{% endfor %}</div><a class="button-link" href="{% url 'management:development_edit' project.pk %}#project-editor">Editar / agregar imágenes →</a>{% if project.status == 'delivered' %}<form method="post" action="{% url 'management:prepare_software_review' project.pk %}">{% csrf_token %}<button class="secondary">{% include 'management/icon.html' with name='star' %} Preparar opinión del desarrollo</button></form>{% else %}<p class="muted">Al finalizar el proyecto puedes generar su enlace de opinión.</p>{% endif %}{% for review in project.reviews.all %}<p><a href="{% url 'management:review_edit' review.pk %}">Opinión · {% if review.submitted_at %}{{ review.rating }} / 5{% else %}Esperando respuesta{% endif %} →</a></p>{% endfor %}</article>{% empty %}<section class="panel"><h2>Registra tu primer proyecto.</h2><p>Agrega tus proyectos actuales y una descripción de lo que hacen.</p></section>{% endfor %}</section>
+-<section class="panel" id="project-editor"><h2>{% if editing %}Editar {{ editing.name }}{% else %}Nuevo proyecto{% endif %}</h2><form method="post" enctype="multipart/form-data">{% csrf_token %}<div class="form-grid">{{ form.as_div }}<div><label for="project-screenshots">Capturas del aplicativo</label><input id="project-screenshots" name="screenshots" type="file" accept="image/jpeg,image/png,image/webp" multiple><p class="muted">Hasta 6 por envío, de 5 MB cada una. Se añaden a las imágenes existentes.</p></div></div><button class="primary">Guardar proyecto</button></form></section>
++<section class="panel" id="project-editor"><h2>{% if editing %}Editar {{ editing.name }}{% else %}Nuevo proyecto{% endif %}</h2><form method="post" enctype="multipart/form-data">{% csrf_token %}<div class="form-grid">{{ form.as_div }}<div><label for="project-screenshots">Capturas del aplicativo</label><input id="project-screenshots" name="screenshots" type="file" accept="image/*,.heic,.heif,.avif,.tiff,.tif" multiple><p class="muted">Hasta 6 por envío, de hasta 25 MB cada una. Se añaden a las imágenes existentes.</p></div></div><button class="primary">Guardar proyecto</button></form></section>
+ {% endblock %}
+diff --git a/templates/management/form.html b/templates/management/form.html
+index b186ee6..218ee37 100644
+--- a/templates/management/form.html
++++ b/templates/management/form.html
+@@ -11,7 +11,7 @@
+ </details>
+ {% endif %}
+ <section class="panel"><form method="post" enctype="multipart/form-data" id="entry-form">{% csrf_token %}<div class="form-grid">{{ form.as_div }}</div>
+-{% if form.image %}<p class="muted">Imagen de referencia JPG, PNG o WEBP de hasta 5 MB.</p>{% endif %}
++{% if form.image %}<p class="muted">Foto de referencia: HEIC/HEIF, JPG, PNG, WEBP y otros formatos de imagen, hasta 25 MB.</p>{% endif %}
+ {% if items %}<h2>Detalle de productos</h2><p class="muted">Usa una variante existente o escribe una pieza personalizada. Deja las medidas y el precio vacíos para tomar los de la variante; los valores que escribas tienen prioridad. Si agregas productos, su suma determina el total.</p>
+ {{ items.management_form }}{{ items.non_form_errors }}<div id="quote-items">{% for item in items %}<fieldset class="quote-item"><legend>Producto {{ forloop.counter }}</legend><div class="form-grid">{{ item.as_div }}</div></fieldset>{% endfor %}</div>
+ <template id="quote-empty"><fieldset class="quote-item"><legend>Nuevo producto</legend><div class="form-grid">{{ items.empty_form.as_div }}</div></fieldset></template><button type="button" id="add-quote-item">+ Agregar producto</button>

@@ -369,17 +369,18 @@ def development(request,pk=None):
         valid=form.is_valid();uploads=request.FILES.getlist('screenshots')
         if len(uploads)>6:
             form.add_error(None,'Puedes agregar hasta 6 imágenes por envío.');valid=False
-        from apps.landing.validators import validate_image
+        from apps.landing.photo_uploads import prepare_photo
         from django.core.exceptions import ValidationError
-        for uploaded in uploads:
-            try:validate_image(uploaded);uploaded.seek(0)
+        photos=[]
+        for uploaded in uploads if valid else ():
+            try:photos.append(prepare_photo(uploaded))
             except ValidationError as error:form.add_error(None,error);valid=False
         if valid:
             with transaction.atomic():
                 project=form.save(commit=False)
                 if not pk:project.created_by=request.user
                 project.save()
-                for uploaded in uploads:ProjectScreenshot.objects.create(project=project,image=uploaded)
+                for uploaded in photos:ProjectScreenshot.objects.create(project=project,image=uploaded)
             messages.success(request,'Proyecto y capturas guardados.')
             return redirect('management:development')
     projects=DevelopmentProject.objects.prefetch_related('screenshots','reviews').all()
@@ -442,7 +443,11 @@ def contact_attachment(request,pk):
     from apps.landing.models import ContactAttachment
     attachment = get_object_or_404(ContactAttachment,pk=pk)
     from .reference_media import reference_response
-    return reference_response(request,attachment.file,attachment.display_name)
+    name=attachment.display_name
+    stored_suffix=Path(attachment.file.name).suffix
+    if attachment.media_kind=='image' and Path(name).suffix.lower()!=stored_suffix.lower():
+        name=Path(name).stem+stored_suffix
+    return reference_response(request,attachment.file,name)
 
 
 @staff_only

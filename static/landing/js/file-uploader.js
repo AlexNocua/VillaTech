@@ -14,7 +14,7 @@
         "png",
         "jpg",
         "jpeg",
-        "webp", "mp4", "webm", "mov"
+        "webp", "heic", "heif", "avif", "gif", "bmp", "tif", "tiff", "mp4", "webm", "mov"
     ]);
 
     var maximumFiles = 5;

@@ -6,3 +6,5 @@ redis>=6,<7
 reportlab>=4.4,<5
 
 cryptography>=49,<50
+
+pillow-heif==1.1.1

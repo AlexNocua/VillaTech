@@ -67,8 +67,9 @@ def contact_form_action(request):
     file_errors=[]
     if len(files)>5: file_errors.append('Selecciona como máximo 5 archivos.')
     if sum(f.size for f in files)>200*1024*1024: file_errors.append('Los archivos no pueden superar 200 MB en total.')
-    for file in files:
-        try: validate_reference(file)
+    prepared=[]
+    for file in files if not file_errors else ():
+        try: prepared.append((Path(file.name).name[:255], validate_reference(file)))
         except ValidationError as error: file_errors.extend(f'{file.name}: {message}' for message in error.messages)
     if file_errors: errors['reference_files']=file_errors
     if not valid or errors:
@@ -82,7 +83,7 @@ def contact_form_action(request):
         data=form.cleaned_data
         with transaction.atomic():
             contact=Contact.objects.create(client_name=data['name'],telephone=data['phone'].strip(),email=data['email'],service=data['service'],message=data['message'],file='')
-            for file in files: ContactAttachment.objects.create(contact=contact,file=file,original_name=Path(file.name).name[:255])
+            for name, file in prepared: ContactAttachment.objects.create(contact=contact,file=file,original_name=name)
             from apps.management.models import Entry
             from .notifications import queue_contact_emails, safely_dispatch
             selected=data.get('reference_product')

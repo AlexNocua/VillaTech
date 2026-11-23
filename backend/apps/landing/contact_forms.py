@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from pathlib import Path
 from .models import Product
+from .photo_uploads import PHOTO_EXTENSIONS, prepare_photo
 
 class ContactForm(forms.Form):
     name=forms.CharField(max_length=255,error_messages={'required':'Escribe tu nombre.','max_length':'El nombre debe tener máximo 255 caracteres.'})
@@ -27,10 +28,12 @@ class ContactForm(forms.Form):
 
 def validate_reference(file):
     if file.size>100*1024*1024: raise ValidationError('Cada archivo debe pesar máximo 100 MB.')
-    if Path(file.name).suffix.lower() not in {'.stl','.obj','.3mf','.step','.stp','.pdf','.png','.jpg','.jpeg','.webp','.mp4','.webm','.mov'}:
+    if Path(file.name).suffix.lower() not in PHOTO_EXTENSIONS | {'.stl','.obj','.3mf','.step','.stp','.pdf','.mp4','.webm','.mov'}:
         raise ValidationError('Formato de archivo no permitido.')
 
     extension = Path(file.name).suffix.lower()
+    if extension in PHOTO_EXTENSIONS:
+        return prepare_photo(file)
     if extension in {'.mp4','.mov','.webm'}:
         try:
             header = file.read(32)
@@ -39,3 +42,5 @@ def validate_reference(file):
                 raise ValidationError('Carga un video MP4, MOV o WEBM válido.')
         finally:
             file.seek(0)
+
+    return file
